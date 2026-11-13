@@ -74,6 +74,9 @@ export async function generateItinerary(
   // The SDK handles authentication, transport, schema formatting, and JSON parsing.
   // Automatic retries are off: the UI offers an explicit retry with predictable cost.
   const client = new OpenAI({ baseURL: baseURL.href, apiKey, timeout: 30_000, maxRetries: 0 });
+  // The SDK's fetch timer can end at headers. This deadline also covers body reading/parsing.
+  const deadlineSignal = AbortSignal.timeout(30_000);
+  const requestSignal = AbortSignal.any([signal, deadlineSignal]);
   const isRefinement = checkedRequest.data.mode === 'refine';
   const structure = isRefinement ? EditableItineraryStructure : GeneratedItineraryStructure;
   const validation = isRefinement ? EditableItinerarySchema : GeneratedItinerarySchema;
@@ -95,7 +98,7 @@ export async function generateItinerary(
         max_output_tokens: 6000,
         text: { format: zodTextFormat(structure, 'trip_itinerary') },
       },
-      { signal },
+      { signal: requestSignal },
     );
 
     if (response.status !== 'completed' || !response.output_parsed) {
@@ -118,6 +121,9 @@ export async function generateItinerary(
     return checkedItinerary.data;
   } catch (error) {
     if (signal.aborted) throw error;
+    if (deadlineSignal.aborted) {
+      throw new PlannerError(504, 'TIMEOUT', 'This is taking too long. Try again.');
+    }
     if (error instanceof PlannerError) throw error;
     if (error instanceof OpenAI.APIConnectionTimeoutError) {
       throw new PlannerError(504, 'TIMEOUT', 'This is taking too long. Try again.');

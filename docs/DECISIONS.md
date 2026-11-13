@@ -53,3 +53,47 @@ This file records the choices made while building. The assignment and the user's
 - tsx and concurrently: readable TypeScript server development and one portable start command, rather than a bespoke process launcher.
 
 References: [Azure structured outputs](https://learn.microsoft.com/azure/foundry/openai/how-to/structured-outputs), [Vite](https://vite.dev/guide/), [Zod](https://zod.dev/).
+
+## 11. Five manual local saves
+
+**Choice:** Save explicitly, update the current session ID, and retain the five most recent saves in one versioned localStorage key. **Reason:** This provides the requested save/reload behavior without an account or backend database. **Considered:** autosaving on every edit, which makes persistence and recovery harder to explain, and cloud sessions, which require additional infrastructure. Corrupt data is preserved until the user explicitly confirms a reset of this app's storage key.
+
+## 12. Typed blocks with derived chart values
+
+**Choice:** A strict union of a travel-tip card, checklist, and chart descriptor. The chart uses current stop durations. **Reason:** Distinct model output becomes distinct UI, and local edits cannot make the chart disagree with the itinerary. **Considered:** raw JSON panels and AI-generated totals, which are not meaningful interactive rendering; a chart library would be excessive for a few horizontal bars. CSS bars plus numeric labels remain readable without visual interpretation.
+
+## 13. Full refinement replacement
+
+**Choice:** Send the current edited itinerary and accept a whole validated replacement. **Reason:** This is much easier to explain than an AI-generated patch protocol. **Considered:** JSON Patch and per-field merge logic, which add validation and identity complexity. The cost is that scope/ID preservation depends partly on the model; this is disclosed. A failed refinement never commits any partial change.
+
+## 14. Bounded requests and timeouts
+
+**Choice:** Seven days, eight stops per day, bounded strings/blocks, a 512 KiB body cap, a 30-second SDK timeout, and a 35-second client timeout. **Reason:** This keeps a basic project predictable while allowing valid edited itineraries to be sent back. **Considered:** a 64 KB cap from an early draft, which could reject a valid maximum-sized refinement; a heavily escaped/Unicode fixture checks the relationship. Unlimited size and indefinite waiting would make bad output expensive and difficult to recover from.
+
+## 15. Theme, typography, and motion
+
+**Choice:** Read the OS theme initially, allow a user toggle, use shared CSS tokens, a familiar serif heading face and system body font, and respect reduced motion. **Reason:** The planner should be readable in the user's viewing conditions without loading another asset service. **Considered:** one fixed theme, remote fonts, and decorative animation scenes; they add little to this assignment. Inline spaces remain around responsive line breaks so hiding a break cannot concatenate words on mobile.
+
+## 16. Lucide icons and Prettier
+
+**Choice:** Lucide for the repeated control icons and Prettier for source formatting. **Reason:** A maintained icon system gives consistent strokes and accessible decorative use; a formatter expands JSX and keeps future changes readable. **Considered:** writing every SVG by hand and manually formatting every prop, which create maintenance work without changing the product. Neither library introduces an application abstraction or state layer.
+
+## 17. Testing libraries at the right boundaries
+
+**Choice:** Vitest for deterministic logic, Testing Library for hooks/components, Supertest for Express requests, and Playwright Test for installed Chrome. **Reason:** Each supplies a demonstrated capability rather than duplicating another runner. **Considered:** bespoke HTTP test servers and browser scripts, which would obscure the tests. Fixtures are isolated to tests; live Azure generation/refinement remain separate verification.
+
+## 18. One local production origin
+
+**Choice:** The built Express app serves the static client and API together and binds to loopback. **Reason:** This verifies the production build without exposing a paid model endpoint publicly. **Considered:** separate deployed frontend/backend origins and CORS setup, which are unnecessary for local delivery. Deployment, credentials, rate limiting, and public access are explicitly deferred rather than silently enabled.
+
+## 19. Recommended scope first
+
+**Choice:** Finish core failure handling, saving, refinement, typed blocks, and bounded polish; leave streaming and drag-and-drop out. **Reason:** The assignment values a reliable core, and the user chose an eight-hour priority. **Considered:** incremental JSON previews, which need new framing/parsing/cancellation tests, and richer travel services such as maps/bookings, which are outside the brief. A recording and explanatory docs help the user understand and present what actually shipped.
+
+## 20. A runtime floor that matches the locked tools
+
+**Choice:** Require Node 26 or later, the runtime used for verification. **Reason:** Vite's lower minimum alone does not cover the current locked jsdom test dependency. **Considered:** downgrading the test environment to support older runtimes; there is no stated need for that, and it would change tooling already verified here. The README and package engine now agree instead of advertising unsupported Node 22.12 compatibility.
+
+## 21. A deadline beyond the SDK default
+
+**Choice:** Combine a 30-second timeout signal with caller cancellation as well as the SDK's timeout. **Reason:** Review reproduced an SDK edge where a response's headers arrived but its error body stalled after the SDK fetch timer was cleared. **Considered:** relying on the browser's later timeout, which protects the screen but leaves the server boundary weaker than promised. A small extra signal covers transport/body completion and maps expiry to the existing safe 504 error; a regression test reproduces a stalled error body without a live paid call.

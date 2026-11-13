@@ -2,8 +2,35 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { requestItinerary } from '../src/lib/api.js';
 import { createItinerary } from './fixtures/itineraries.js';
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 describe('client API boundary', () => {
+  it('ends a slow request with a safe timeout message', async () => {
+    const deadline = new AbortController();
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(deadline.signal);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(
+        (_url, options) =>
+          new Promise((_resolve, reject) => {
+            options.signal.addEventListener(
+              'abort',
+              () => reject(new DOMException('Aborted', 'AbortError')),
+              { once: true },
+            );
+          }),
+      ),
+    );
+    const pending = requestItinerary(
+      { mode: 'generate', prompt: 'Jaipur' },
+      new AbortController().signal,
+    );
+    expect(timeoutSpy).toHaveBeenCalledWith(35_000);
+    deadline.abort();
+    await expect(pending).rejects.toThrow('This is taking too long. Try again.');
+  });
   it('returns only a validated successful itinerary', async () => {
     vi.stubGlobal(
       'fetch',

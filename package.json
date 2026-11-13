@@ -17,7 +17,7 @@
     "format": "prettier --write src shared server tests *.config.ts index.html package.json"
   },
   "engines": {
-    "node": ">=22.12.0"
+    "node": ">=26.0.0"
   },
   "packageManager": "pnpm@12.18.0",
   "dependencies": {

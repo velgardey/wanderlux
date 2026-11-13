@@ -29,11 +29,50 @@ beforeEach(() => {
   vi.stubEnv('AZURE_OPENAI_API_KEY', 'test-key-not-a-real-secret');
 });
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
 
 describe('Azure Responses integration', () => {
+  it('keeps a deadline while a provider error body is stalled after headers', async () => {
+    const caller = new AbortController();
+    const deadline = new AbortController();
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout').mockReturnValue(deadline.signal);
+    let bodyStarted!: () => void;
+    const readingBody = new Promise<void>((resolve) => {
+      bodyStarted = resolve;
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(async (_url, options) => {
+        const body = new ReadableStream({
+          start(stream) {
+            options.signal.addEventListener(
+              'abort',
+              () => stream.error(new DOMException('Aborted', 'AbortError')),
+              { once: true },
+            );
+            bodyStarted();
+          },
+        });
+        return new Response(body, { status: 503 });
+      }),
+    );
+    const settled = generateItinerary({ mode: 'generate', prompt: 'Jaipur' }, caller.signal).catch(
+      (error) => error,
+    );
+    await readingBody;
+    try {
+      expect(timeoutSpy).toHaveBeenCalledWith(30_000);
+      deadline.abort();
+      expect(await settled).toMatchObject({ status: 504, code: 'TIMEOUT' });
+    } finally {
+      caller.abort();
+      await settled;
+    }
+  });
+
   it('parses a real-shaped Responses envelope and sends the deployment/schema', async () => {
     const fetchMock = vi
       .fn()

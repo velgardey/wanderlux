@@ -2,6 +2,8 @@
 
 > **For agentic workers:** Use `superpowers:executing-plans` to implement this plan task by task. Checkboxes track progress. This deliverable is a plan; it does not authorize implementation, installation, publishing, or deletion of existing material.
 
+**Later implementation update:** The user subsequently authorized building this plan and selected Azure GPT 6 Luna through the Responses API instead of Gemini. The local implementation and recommended extras are complete; see `docs/BUILD_LOG.md`, `docs/DECISIONS.md`, and `README.md` for actual code, verification, and deferred scope. The original estimates and provider proposal below are preserved as planning history.
+
 **Goal:** Build a small React trip planner that converts a free-form trip description into a reliable, editable day-by-day itinerary and fits the assignment's eight-hour work limit.
 
 **Architecture:** A Vite React client calls a small same-origin Node/Express API. The API calls Gemini, parses and validates its output, and returns a typed itinerary. React owns itinerary edits and request state; browser storage handles saved sessions.

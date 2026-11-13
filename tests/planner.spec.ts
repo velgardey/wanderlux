@@ -83,3 +83,69 @@ test('supports keyboard entry and the theme control', async ({ page }) => {
     true,
   );
 });
+
+test('keyboard-only actions work and removing the last stop restores focus', async ({ page }) => {
+  let calls = 0;
+  let releaseCancelledRequest: (() => void) | undefined;
+  await page.route('**/api/itinerary', async (route) => {
+    calls += 1;
+    if (calls === 2) {
+      await route.fulfill({
+        status: 502,
+        json: { error: { code: 'INVALID_OUTPUT', message: 'Please retry this itinerary.' } },
+      });
+      return;
+    }
+    if (calls === 4) {
+      await new Promise<void>((resolve) => {
+        releaseCancelledRequest = resolve;
+      });
+      await route.abort();
+      return;
+    }
+    await route.fulfill({ json: { itinerary: createItinerary() } });
+  });
+  await page.goto('/');
+  await page.getByLabel('Your trip').focus();
+  await page.keyboard.insertText('Two days in Jaipur');
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Jaipur, 3 days' })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Generate itinerary' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading', { name: 'Three days in Jaipur' })).toBeVisible();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Save trip', exact: true })).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Expand City Palace' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByText('Explore the courtyards.')).toBeVisible();
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Move City Palace down' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.stop-title').first()).toHaveText('A local lunch');
+  await page.getByRole('button', { name: 'Remove A garden walk' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('heading', { name: 'A quieter afternoon' })).toBeFocused();
+  await page.getByRole('button', { name: 'Save trip', exact: true }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByText('Trip saved in this browser.')).toBeVisible();
+  await page.getByRole('button', { name: 'Generate itinerary' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('alert')).toContainText('Please retry');
+  await page.getByRole('button', { name: 'Retry last request' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Generate itinerary' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('button', { name: 'Cancel request' })).toBeVisible();
+  await page.getByRole('button', { name: 'Cancel request' }).focus();
+  await page.keyboard.press('Enter');
+  releaseCancelledRequest?.();
+  await expect(page.getByRole('button', { name: 'Generate itinerary' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Three days in Jaipur' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(
+    true,
+  );
+});

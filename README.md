@@ -4,7 +4,7 @@ A small React app that turns a free-form trip brief into an editable day-by-day 
 
 ## Run locally
 
-Requirements: Node **22.12 or later** and pnpm. This project was checked with Node 26.13 and pnpm 12.18. Dependencies are locked in `pnpm-lock.yaml`.
+Requirements: Node **26 or later** and pnpm. This project was checked with Node 26.13 and pnpm 12.18. The locked test tooling also requires a recent Node release; declaring Node 26 avoids promising compatibility with older runtimes we have not verified. Dependencies are locked in `pnpm-lock.yaml`.
 
 ```powershell
 cd C:\Projects\wanderlux
@@ -104,6 +104,10 @@ The mandatory trip-planning interactions and reliability requirements are implem
 Before submitting, share a public repo or grant private access, attach a short screen recording, and state your **actual** time spent. Do not submit someone else's repository or claim that all AI suggestions are verified.
 
 Build progress and verification evidence are recorded in [the build log](docs/BUILD_LOG.md). Session time is not equivalent to the human author's independent work time; record your own actual time and stop at eight hours. No fabricated exact duration is provided.
+
+**Observed assisted build time:** approximately 45 minutes between the first schema test at 19:08 and final build checks around 19:53 IST on 13 November 2026, plus initial setup and the earlier planning turn. This is an elapsed tooling interval including automated waits, not a manual timesheet.
+
+The [short demo recording](output/trip-planner-demo.mp4) shows a live-generated trip and local editing/saving/theme controls. It has no narration and is trimmed to remove waiting. Live generation/refinement were verified separately; add your own explanation or record a longer walkthrough before an interview.
 
 ## Extending it
 

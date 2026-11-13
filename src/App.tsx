@@ -157,13 +157,11 @@ export default function App() {
         <aside className="planner-sidebar">
           <div className="intro">
             <h1>
-              Plan your
-              <br />
+              Plan your <br />
               next trip.
             </h1>
             <p>
-              The places you’re curious about.
-              <br />
+              The places you’re curious about. <br />
               The pace that feels right for you.
             </p>
           </div>

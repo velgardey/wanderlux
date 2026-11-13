@@ -78,7 +78,7 @@ Microsoft's examples use the official OpenAI SDK with the Azure v1 endpoint. `zo
 
 The prompt explains the required shape, travel limits, assumptions, and refinement behavior. A refinement input contains the **current** edited itinerary rather than the original response. IDs are preserved when possible so local presentation state can survive.
 
-The SDK timeout is 30 seconds and automatic retries are off. Errors become messages we wrote ourselves; provider diagnostics, keys, and stacks are not echoed. Abort is best effort: it protects our app state and network work but cannot guarantee the provider stops processing or charging.
+The SDK timeout is 30 seconds and automatic retries are off. An independent timeout signal covers the whole response as well: the SDK's fetch timer can finish when headers arrive, before a slow error body is read. Combining that deadline with caller cancellation prevents indefinite waiting at that boundary. Errors become messages we wrote ourselves; provider diagnostics, keys, and stacks are not echoed. Abort is best effort: it protects our app state and network work but cannot guarantee the provider stops processing or charging.
 
 ## 8. Components render data, not raw AI text
 
