@@ -13,17 +13,29 @@ export const StopSchema = z.strictObject({
 });
 
 const TipBlockSchema = z.strictObject({
-  type: z.literal('card'), id: IdentifierSchema, title: ShortTitleSchema,
+  type: z.literal('card'),
+  id: IdentifierSchema,
+  title: ShortTitleSchema,
   text: z.string().trim().min(1).max(500),
 });
 const ChecklistBlockSchema = z.strictObject({
-  type: z.literal('checklist'), id: IdentifierSchema, title: ShortTitleSchema,
-  items: z.array(z.strictObject({
-    id: IdentifierSchema, label: z.string().trim().min(1).max(160),
-  })).min(1).max(12),
+  type: z.literal('checklist'),
+  id: IdentifierSchema,
+  title: ShortTitleSchema,
+  items: z
+    .array(
+      z.strictObject({
+        id: IdentifierSchema,
+        label: z.string().trim().min(1).max(160),
+      }),
+    )
+    .min(1)
+    .max(12),
 });
 const ChartBlockSchema = z.strictObject({
-  type: z.literal('chart'), id: IdentifierSchema, title: ShortTitleSchema,
+  type: z.literal('chart'),
+  id: IdentifierSchema,
+  title: ShortTitleSchema,
   metric: z.literal('activityMinutes'),
 });
 export const ResultBlockSchema = z.union([TipBlockSchema, ChecklistBlockSchema, ChartBlockSchema]);
@@ -32,11 +44,16 @@ function createItineraryStructure(minimumStops: number) {
   return z.strictObject({
     title: z.string().trim().min(1).max(160),
     assumptions: z.array(z.string().trim().min(1).max(240)).max(5),
-    days: z.array(z.strictObject({
-      dayNumber: z.number().int().min(1).max(7),
-      title: ShortTitleSchema,
-      stops: z.array(StopSchema).min(minimumStops).max(8),
-    })).min(1).max(7),
+    days: z
+      .array(
+        z.strictObject({
+          dayNumber: z.number().int().min(1).max(7),
+          title: ShortTitleSchema,
+          stops: z.array(StopSchema).min(minimumStops).max(8),
+        }),
+      )
+      .min(1)
+      .max(7),
     blocks: z.array(ResultBlockSchema).max(3),
   });
 }
@@ -65,17 +82,28 @@ function checkItineraryRelationships(itinerary: Itinerary, context: z.Refinement
   checkUniqueIds(checklistItemIds, 'Checklist item', context);
   itinerary.days.forEach((day, index) => {
     if (day.dayNumber !== index + 1) {
-      context.addIssue({ code: 'custom', message: 'Day numbers must start at one and stay consecutive.' });
+      context.addIssue({
+        code: 'custom',
+        message: 'Day numbers must start at one and stay consecutive.',
+      });
     }
   });
 }
 
-export const GeneratedItinerarySchema = GeneratedItineraryStructure.superRefine(checkItineraryRelationships);
-export const EditableItinerarySchema = EditableItineraryStructure.superRefine(checkItineraryRelationships);
+export const GeneratedItinerarySchema = GeneratedItineraryStructure.superRefine(
+  checkItineraryRelationships,
+);
+export const EditableItinerarySchema = EditableItineraryStructure.superRefine(
+  checkItineraryRelationships,
+);
 const PromptSchema = z.string().trim().min(1).max(2000);
 export const PlannerRequestSchema = z.discriminatedUnion('mode', [
   z.strictObject({ mode: z.literal('generate'), prompt: PromptSchema }),
-  z.strictObject({ mode: z.literal('refine'), instruction: PromptSchema, itinerary: EditableItinerarySchema }),
+  z.strictObject({
+    mode: z.literal('refine'),
+    instruction: PromptSchema,
+    itinerary: EditableItinerarySchema,
+  }),
 ]);
 export type PlannerRequest = z.infer<typeof PlannerRequestSchema>;
 export const SuccessResponseSchema = z.strictObject({ itinerary: EditableItinerarySchema });
@@ -83,8 +111,12 @@ export const ErrorResponseSchema = z.strictObject({
   error: z.strictObject({ code: z.string(), message: z.string().min(1).max(500) }),
 });
 export const SavedSessionSchema = z.strictObject({
-  version: z.literal(1), id: IdentifierSchema, savedAt: z.iso.datetime(), prompt: PromptSchema,
-  itinerary: EditableItinerarySchema, checkedItemIds: z.array(IdentifierSchema).max(36),
+  version: z.literal(1),
+  id: IdentifierSchema,
+  savedAt: z.iso.datetime(),
+  prompt: PromptSchema,
+  itinerary: EditableItinerarySchema,
+  checkedItemIds: z.array(IdentifierSchema).max(36),
 });
 export const SavedSessionsSchema = z.array(SavedSessionSchema).max(5);
 export type SavedSession = z.infer<typeof SavedSessionSchema>;

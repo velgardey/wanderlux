@@ -1,7 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { PlannerRequestSchema, SavedSessionSchema, type Itinerary, type PlannerRequest, type SavedSession } from '../../shared/itinerary.js';
+import {
+  PlannerRequestSchema,
+  SavedSessionSchema,
+  type Itinerary,
+  type PlannerRequest,
+  type SavedSession,
+} from '../../shared/itinerary.js';
 import { requestItinerary } from '../lib/api.js';
-import { removeStop as removeStopFromItinerary, moveStop as moveStopInItinerary } from '../lib/itinerary.js';
+import {
+  removeStop as removeStopFromItinerary,
+  moveStop as moveStopInItinerary,
+} from '../lib/itinerary.js';
 
 type RequestStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -12,6 +21,7 @@ export function usePlanner() {
   const [prompt, setPrompt] = useState('');
   const [expandedStopIds, setExpandedStopIds] = useState<string[]>([]);
   const [checkedItemIds, setCheckedItemIds] = useState<string[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   // Refs update immediately without waiting for React's next render.
   const requestNumber = useRef(0);
@@ -42,7 +52,11 @@ export function usePlanner() {
     const checkedRequest = PlannerRequestSchema.safeParse(request);
     if (!checkedRequest.success) {
       cancel();
-      setError(request.mode === 'generate' ? 'Describe the trip you want to plan.' : 'Enter a refinement instruction of up to 2,000 characters.');
+      setError(
+        request.mode === 'generate'
+          ? 'Describe the trip you want to plan.'
+          : 'Enter a refinement instruction of up to 2,000 characters.',
+      );
       setStatus('error');
       return;
     }
@@ -64,9 +78,16 @@ export function usePlanner() {
         setPrompt(checkedRequest.data.prompt);
         setExpandedStopIds([]);
         setCheckedItemIds([]);
+        setSessionId(null);
       } else {
-        const survivingStopIds = new Set(nextItinerary.days.flatMap((day) => day.stops.map((stop) => stop.id)));
-        const survivingItemIds = new Set(nextItinerary.blocks.flatMap((block) => block.type === 'checklist' ? block.items.map((item) => item.id) : []));
+        const survivingStopIds = new Set(
+          nextItinerary.days.flatMap((day) => day.stops.map((stop) => stop.id)),
+        );
+        const survivingItemIds = new Set(
+          nextItinerary.blocks.flatMap((block) =>
+            block.type === 'checklist' ? block.items.map((item) => item.id) : [],
+          ),
+        );
         setExpandedStopIds((previousIds) => previousIds.filter((id) => survivingStopIds.has(id)));
         setCheckedItemIds((previousIds) => previousIds.filter((id) => survivingItemIds.has(id)));
       }
@@ -74,7 +95,11 @@ export function usePlanner() {
     } catch (requestError) {
       if (thisRequestNumber !== requestNumber.current) return;
       failedRequest.current = checkedRequest.data;
-      setError(requestError instanceof Error ? requestError.message : 'The request failed. Please try again.');
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'The request failed. Please try again.',
+      );
       setStatus('error');
     } finally {
       // An old request must not clear the controller belonging to a newer one.
@@ -100,7 +125,7 @@ export function usePlanner() {
     if (activeController.current) return;
     // Clearing Retry prevents a failed refinement snapshot from restoring later deletions.
     clearFailure();
-    setItinerary((current) => current ? removeStopFromItinerary(current, stopId) : current);
+    setItinerary((current) => (current ? removeStopFromItinerary(current, stopId) : current));
     setExpandedStopIds((ids) => ids.filter((id) => id !== stopId));
     setStatus(itinerary ? 'success' : 'idle');
   }
@@ -108,16 +133,22 @@ export function usePlanner() {
   function moveStop(stopId: string, direction: -1 | 1) {
     if (activeController.current) return;
     clearFailure();
-    setItinerary((current) => current ? moveStopInItinerary(current, stopId, direction) : current);
+    setItinerary((current) =>
+      current ? moveStopInItinerary(current, stopId, direction) : current,
+    );
     setStatus(itinerary ? 'success' : 'idle');
   }
 
   function toggleExpanded(stopId: string) {
-    setExpandedStopIds((ids) => ids.includes(stopId) ? ids.filter((id) => id !== stopId) : [...ids, stopId]);
+    setExpandedStopIds((ids) =>
+      ids.includes(stopId) ? ids.filter((id) => id !== stopId) : [...ids, stopId],
+    );
   }
 
   function toggleChecklistItem(itemId: string) {
-    setCheckedItemIds((ids) => ids.includes(itemId) ? ids.filter((id) => id !== itemId) : [...ids, itemId]);
+    setCheckedItemIds((ids) =>
+      ids.includes(itemId) ? ids.filter((id) => id !== itemId) : [...ids, itemId],
+    );
   }
 
   function loadSession(session: SavedSession) {
@@ -129,15 +160,35 @@ export function usePlanner() {
     cancel();
     setItinerary(checkedSession.data.itinerary);
     setPrompt(checkedSession.data.prompt);
+    setSessionId(checkedSession.data.id);
     setExpandedStopIds([]);
-    const itemIds = new Set(checkedSession.data.itinerary.blocks.flatMap((block) => block.type === 'checklist' ? block.items.map((item) => item.id) : []));
+    const itemIds = new Set(
+      checkedSession.data.itinerary.blocks.flatMap((block) =>
+        block.type === 'checklist' ? block.items.map((item) => item.id) : [],
+      ),
+    );
     setCheckedItemIds(checkedSession.data.checkedItemIds.filter((id) => itemIds.has(id)));
     setStatus('success');
   }
 
   return {
-    itinerary, status, error, prompt, expandedStopIds, checkedItemIds,
+    itinerary,
+    status,
+    error,
+    prompt,
+    expandedStopIds,
+    checkedItemIds,
+    sessionId,
     canRetry: failedRequest.current !== null,
-    generate, refine, cancel, retry, removeStop, moveStop, toggleExpanded, toggleChecklistItem, loadSession,
+    generate,
+    refine,
+    cancel,
+    retry,
+    removeStop,
+    moveStop,
+    toggleExpanded,
+    toggleChecklistItem,
+    loadSession,
+    markSaved: setSessionId,
   };
 }

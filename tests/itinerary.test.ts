@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { GeneratedItinerarySchema, EditableItinerarySchema, PlannerRequestSchema } from '../shared/itinerary.js';
+import {
+  GeneratedItinerarySchema,
+  EditableItinerarySchema,
+  PlannerRequestSchema,
+} from '../shared/itinerary.js';
 import { createItinerary } from './fixtures/itineraries.js';
 
 describe('itinerary boundaries', () => {
@@ -35,8 +39,15 @@ describe('itinerary boundaries', () => {
 
   it('rejects unknown block types and extra fields', () => {
     const itinerary = createItinerary();
-    expect(GeneratedItinerarySchema.safeParse({ ...itinerary, blocks: [{ type: 'executable', code: 'alert(1)' }] }).success).toBe(false);
-    expect(GeneratedItinerarySchema.safeParse({ ...itinerary, unexpected: true }).success).toBe(false);
+    expect(
+      GeneratedItinerarySchema.safeParse({
+        ...itinerary,
+        blocks: [{ type: 'executable', code: 'alert(1)' }],
+      }).success,
+    ).toBe(false);
+    expect(GeneratedItinerarySchema.safeParse({ ...itinerary, unexpected: true }).success).toBe(
+      false,
+    );
   });
 
   it('rejects duplicate checklist item IDs and oversized day arrays', () => {
@@ -44,11 +55,22 @@ describe('itinerary boundaries', () => {
     const checklist = itinerary.blocks.find((block) => block.type === 'checklist')!;
     checklist.items![1].id = checklist.items![0].id;
     expect(GeneratedItinerarySchema.safeParse(itinerary).success).toBe(false);
-    expect(GeneratedItinerarySchema.safeParse({ ...createItinerary(), days: Array(8).fill(createItinerary().days[0]) }).success).toBe(false);
+    expect(
+      GeneratedItinerarySchema.safeParse({
+        ...createItinerary(),
+        days: Array(8).fill(createItinerary().days[0]),
+      }).success,
+    ).toBe(false);
   });
 
   it('rejects blank prompts before any provider call', () => {
     expect(PlannerRequestSchema.safeParse({ mode: 'generate', prompt: '   ' }).success).toBe(false);
-    expect(PlannerRequestSchema.safeParse({ mode: 'refine', instruction: 'less walking', itinerary: null }).success).toBe(false);
+    expect(
+      PlannerRequestSchema.safeParse({
+        mode: 'refine',
+        instruction: 'less walking',
+        itinerary: null,
+      }).success,
+    ).toBe(false);
   });
 });

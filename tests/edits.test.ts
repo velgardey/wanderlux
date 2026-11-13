@@ -15,8 +15,16 @@ describe('local itinerary edits', () => {
   });
   it('moves a middle stop in either direction without mutating the original', () => {
     const original = createItinerary();
-    expect(moveStop(original, 'stop-lunch', -1).days[0].stops.map((stop) => stop.id)).toEqual(['stop-lunch', 'stop-palace', 'stop-market']);
-    expect(moveStop(original, 'stop-lunch', 1).days[0].stops.map((stop) => stop.id)).toEqual(['stop-palace', 'stop-market', 'stop-lunch']);
+    expect(moveStop(original, 'stop-lunch', -1).days[0].stops.map((stop) => stop.id)).toEqual([
+      'stop-lunch',
+      'stop-palace',
+      'stop-market',
+    ]);
+    expect(moveStop(original, 'stop-lunch', 1).days[0].stops.map((stop) => stop.id)).toEqual([
+      'stop-palace',
+      'stop-market',
+      'stop-lunch',
+    ]);
     expect(original.days[0].stops[1].id).toBe('stop-lunch');
   });
   it('does nothing for a missing stop or a move past a day boundary', () => {
@@ -25,7 +33,12 @@ describe('local itinerary edits', () => {
     expect(moveStop(original, 'unknown', 1)).toBe(original);
     expect(removeStop(original, 'unknown')).toEqual(original);
   });
-  it.each([[0, '0 min'], [45, '45 min'], [60, '1h'], [90, '1h 30m']])('formats %i minutes as %s', (minutes, label) => {
+  it.each([
+    [0, '0 min'],
+    [45, '45 min'],
+    [60, '1h'],
+    [90, '1h 30m'],
+  ])('formats %i minutes as %s', (minutes, label) => {
     expect(formatDuration(minutes as number)).toBe(label);
   });
 });

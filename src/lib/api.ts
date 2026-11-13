@@ -1,6 +1,14 @@
-import { SuccessResponseSchema, ErrorResponseSchema, type PlannerRequest, type Itinerary } from '../../shared/itinerary.js';
+import {
+  SuccessResponseSchema,
+  ErrorResponseSchema,
+  type PlannerRequest,
+  type Itinerary,
+} from '../../shared/itinerary.js';
 
-export async function requestItinerary(request: PlannerRequest, signal: AbortSignal): Promise<Itinerary> {
+export async function requestItinerary(
+  request: PlannerRequest,
+  signal: AbortSignal,
+): Promise<Itinerary> {
   const timeoutSignal = AbortSignal.timeout(35_000);
   const combinedSignal = AbortSignal.any([signal, timeoutSignal]);
   let response: Response;
@@ -28,10 +36,13 @@ export async function requestItinerary(request: PlannerRequest, signal: AbortSig
 
   if (!response.ok) {
     const checkedError = ErrorResponseSchema.safeParse(payload);
-    const message = checkedError.success ? checkedError.data.error.message : 'The request failed. Please try again.';
+    const message = checkedError.success
+      ? checkedError.data.error.message
+      : 'The request failed. Please try again.';
     throw new Error(message);
   }
   const checkedResponse = SuccessResponseSchema.safeParse(payload);
-  if (!checkedResponse.success) throw new Error('The server returned an itinerary we could not use.');
+  if (!checkedResponse.success)
+    throw new Error('The server returned an itinerary we could not use.');
   return checkedResponse.data.itinerary;
 }

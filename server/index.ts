@@ -15,7 +15,12 @@ app.get('/api/health', (_request, response) => {
 app.post('/api/itinerary', async (request, response) => {
   const checkedRequest = PlannerRequestSchema.safeParse(request.body);
   if (!checkedRequest.success) {
-    response.status(400).json({ error: { code: 'INVALID_REQUEST', message: 'Describe a trip or enter a valid refinement instruction.' } });
+    response.status(400).json({
+      error: {
+        code: 'INVALID_REQUEST',
+        message: 'Describe a trip or enter a valid refinement instruction.',
+      },
+    });
     return;
   }
 
@@ -30,10 +35,17 @@ app.post('/api/itinerary', async (request, response) => {
     if (!controller.signal.aborted) response.json({ itinerary });
   } catch (error) {
     if (controller.signal.aborted) return;
-    const safeError = error instanceof PlannerError
-      ? error
-      : new PlannerError(500, 'SERVER_ERROR', 'Something went wrong on the server. Please try again.');
-    response.status(safeError.status).json({ error: { code: safeError.code, message: safeError.message } });
+    const safeError =
+      error instanceof PlannerError
+        ? error
+        : new PlannerError(
+            500,
+            'SERVER_ERROR',
+            'Something went wrong on the server. Please try again.',
+          );
+    response
+      .status(safeError.status)
+      .json({ error: { code: safeError.code, message: safeError.message } });
   } finally {
     response.off('close', cancelDisconnectedRequest);
   }
@@ -41,13 +53,30 @@ app.post('/api/itinerary', async (request, response) => {
 
 // The production build shares this origin with the API; no CORS setup is needed.
 app.use(express.static(resolve('dist/client')));
-app.use((error: { type?: string }, _request: express.Request, response: express.Response, _next: express.NextFunction) => {
-  if (error.type === 'entity.too.large') {
-    response.status(413).json({ error: { code: 'REQUEST_TOO_LARGE', message: 'This request is too large. Try a shorter trip description.' } });
-    return;
-  }
-  response.status(400).json({ error: { code: 'INVALID_JSON', message: 'The request was not valid JSON. Please try again.' } });
-});
+app.use(
+  (
+    error: { type?: string },
+    _request: express.Request,
+    response: express.Response,
+    _next: express.NextFunction,
+  ) => {
+    if (error.type === 'entity.too.large') {
+      response.status(413).json({
+        error: {
+          code: 'REQUEST_TOO_LARGE',
+          message: 'This request is too large. Try a shorter trip description.',
+        },
+      });
+      return;
+    }
+    response.status(400).json({
+      error: {
+        code: 'INVALID_JSON',
+        message: 'The request was not valid JSON. Please try again.',
+      },
+    });
+  },
+);
 
 // Importing app in a test must not open a port. Running this file does.
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
