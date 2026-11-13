@@ -5,6 +5,14 @@ dist/
 !.env.example
 playwright-report/
 test-results/
-.superpowers/
+# Development notes, logs, and test material are kept locally.
+/docs/
+/plans/
+/logs/
+/tests/
+/vitest.config.ts
+/playwright.config.ts
+/coverage/
+*.log
 # Verification captures are temporary; keep the linked demo recording.
 /output/screenshots/

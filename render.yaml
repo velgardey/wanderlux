@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: wanderlux
+    runtime: node
+    plan: free
+    branch: main
+    buildCommand: pnpm install --frozen-lockfile --prod=false && pnpm build
+    startCommand: pnpm serve
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: AZURE_OPENAI_ENDPOINT
+        sync: false
+      - key: AZURE_OPENAI_DEPLOYMENT
+        value: gpt-6-luna
+      - key: AZURE_OPENAI_API_KEY
+        sync: false

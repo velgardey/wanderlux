@@ -1,4 +1,5 @@
 import express from 'express';
+import { rateLimit } from 'express-rate-limit';
 import OpenAI from 'openai';
 import { z } from 'zod';
 import { resolve } from 'node:path';
@@ -11,6 +12,27 @@ import { geocodeLocation } from './geocodeLocation.js';
 export const app = express();
 app.disable('x-powered-by');
 app.use(express.json({ limit: '512kb' }));
+
+if (process.env.NODE_ENV === 'production') {
+  // shortcut: limits reset on restart; use a shared store before scaling.
+  app.use(
+    '/api/itinerary',
+    rateLimit({
+      windowMs: 60 * 60 * 1000,
+      limit: 20,
+      // One shared allowance protects the demo without trusting proxy IP headers.
+      keyGenerator: () => 'itinerary',
+      standardHeaders: 'draft-8',
+      legacyHeaders: false,
+      message: {
+        error: {
+          code: 'REQUEST_LIMIT_REACHED',
+          message: 'The planner has reached its hourly request limit. Please try again later.',
+        },
+      },
+    }),
+  );
+}
 
 app.get('/api/health', (_request, response) => {
   response.json({ status: 'ok' });
@@ -133,7 +155,8 @@ app.use(
 // Importing app in a test must not open a port. Running this file does.
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   const port = Number(process.env.PORT || 3001);
-  app.listen(port, '127.0.0.1', () => {
-    console.log(`Trip planner API: http://127.0.0.1:${port}`);
+  const host = process.env.HOST || '127.0.0.1';
+  app.listen(port, host, () => {
+    console.log(`Trip planner API: http://${host}:${port}`);
   });
 }
