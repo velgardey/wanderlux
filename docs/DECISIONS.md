@@ -107,3 +107,23 @@ References: [Azure structured outputs](https://learn.microsoft.com/azure/foundry
 **Choice:** Tailwind CSS 4.3.5 and the matching first-party Vite plugin, with literal layout/typography classes in JSX and repeated controls using `@apply`. **Reason:** This follows the user's request and removes the large hand-written component stylesheet while preserving the existing appearance and interactions. `@theme inline` connects utility colors to the existing light/dark variables. **Considered:** converting every selector to `@apply`, which would keep the old large stylesheet; copying full button classes everywhere, which makes shared changes harder; adding a component kit or class helper, which provides no needed capability. Exact bracket values and existing breakpoints preserve the design. Native focus and reduced-motion rules stay in the base layer. Chart width remains a runtime style, and browser tests use a test ID rather than depending on visual class names.
 
 References: [Tailwind with Vite](https://tailwindcss.com/docs/installation/using-vite), [theme variables](https://tailwindcss.com/docs/theme), and [Azure latency](https://learn.microsoft.com/azure/ai-foundry/openai/how-to/latency).
+
+## 24. Specific SDK errors before their parent
+
+**Choice:** Catch timeout and connection errors before general `APIError`, retaining the original exception with native `ErrorOptions.cause`. **Reason:** `APIConnectionError` inherits `APIError`; the old ordering made its branch unreachable. An offline-provider regression failed before this fix and passed afterward. **Considered:** switching SDKs or rewriting transport, which would not address the local catch-order mistake. Safe browser messages and existing timeout behavior stay intact.
+
+## 25. Small sanitized diagnostics with the standard console
+
+**Choice:** Log the operation, safe code/status, original error class, provider HTTP status, and Zod field paths at the HTTP error boundary. **Reason:** A learner needs to identify which boundary failed, while user/model contents and credentials must stay private. Causes remain available to a local debugger but are not serialized to the browser. **Considered:** printing the whole exception or its message/stack, which may reveal private payloads, and adding a logging framework, which brings no needed capability to one local route. Tests assert the diagnostic fields and absence of private text, headers, and keys.
+
+## 26. Validate the complete endpoint early
+
+**Choice:** Require a complete HTTPS `/openai/v1` API base URL, with an optional trailing slash, and fix the example comment. **Reason:** The resource host alone leads to the wrong request path and a misleading provider failure. Reject URL credentials, query parameters, and fragments so the base URL is unambiguous. **Considered:** silently appending a guessed API path, which hides mistakes when the configured path is already wrong. Existing configured Azure settings are unchanged.
+
+## 27. Cancellation tests that detect an introduced bug
+
+**Choice:** Use the existing Vitest/Supertest setup plus native Node HTTP for a real browser-side disconnect. Verify both aborted requests and normal completion. **Reason:** Browser stale-response tests alone cannot prove that the server stops its provider transport. A temporary reversal of the disconnect guard made the new test fail; the original correct guard was then restored and all HTTP tests passed. **Considered:** a mocked Express response, which could miss the real socket/close behavior, and a full mutation-testing framework, which is unnecessary to check this specific gap. No claim is made that all possible future bugs are detected.
+
+## 28. Extract views while keeping orchestration visible
+
+**Choice:** Move saved-trip rendering to `SavedTrips` and itinerary header/totals/save rendering to `TripSummary`. Keep storage operations, screen state, and callbacks in `App`, and request state in `usePlanner`. Replace repeated separator class strings with one `trip-fact` component style. **Reason:** These are recognizable screen jobs that can be read and changed separately without new state ownership or a second abstraction system. **Considered:** introducing a state library, storage hook, generic card framework, or class helper, which would add concepts without simplifying the requested changes. Existing screen/browser tests exercise the components through their unchanged actions.

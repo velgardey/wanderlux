@@ -9,7 +9,7 @@ The user approved implementation and requested readable, explicit code and expla
 - Tasks 1-4 complete: setup, shared validation, Azure integration, interactive UI, and request/error protection.
 - Tasks 5-8 complete: five-session persistence, refinement, typed blocks, responsive layout, keyboard operation, and themes.
 - Task 9 complete locally: README, code walkthrough, decisions, short recording, locked install/build/start checks, and review. Public repository publication and deployment remain outside this authorized local build.
-- Unit/component/HTTP tests: **61 passed** after the timeout regression. Browser tests: **8 passed**, desktop and mobile with installed Chrome. TypeScript and production build pass.
+- Unit/component/HTTP tests: **69 passed** after the readability and debugging regressions. Browser tests: **8 passed**, desktop and mobile with installed Chrome. TypeScript and production build pass.
 - Provider: the supplied Azure v1 endpoint and `gpt-6-luna` were used for multiple real generations and refinements. Structured cards/checklists/chart blocks rendered successfully; one refinement preserved current stop IDs and a checked packing item.
 - Production: static client, API health, and safe invalid-request handling checked on the built server. Client assets scanned for the actual environment key; it was absent. `.env` is ignored and untracked.
 - Visual verification: desktop, 390px, and 320px captures inspected; mobile spacing and final-stop focus behavior checked.
@@ -36,6 +36,18 @@ Tailwind CSS and its Vite plugin are both locked to 4.3.5. Layout/typography uti
 Validation: **61 unit/component/API tests and 8 browser tests passed**, typecheck and production build passed. Populated desktop light/dark screenshots and 320px mobile screenshots were visually inspected; the design detector returned no findings. Live generation and refinement used the configured Azure deployment. Public deployment, background jobs, streaming, and discarded mockups remain outside the change.
 
 The follow-up independent review found no Critical or Important issues. Both minor styling differences were corrected: trip-fact separator dots and the refinement heading's original bold weight. Deadline spacing, cancellation, validation, Tailwind configuration, and local scope were reviewed without repeating paid provider calls.
+
+## Follow-up: readability and debugging fixes
+
+The user authorized all six findings from the readability review. Specific SDK timeout/connection errors now precede their general APIError parent. Native error causes preserve debugging context, while the HTTP boundary logs only operation, safe code/status, error class, provider status, and validation field paths. Private text, headers, keys, and exception objects are excluded. Complete HTTPS `/openai/v1` endpoints are validated before contacting Azure, and `.env.example` shows that path.
+
+SavedTrips and TripSummary now hold their respective views, with state/storage/request coordination still in App and usePlanner. Repeated trip-fact separators use one Tailwind component style. No dependencies or saved-data format changes were needed. The walkthrough explains the new boundaries and a reproduce/test/fix workflow; decisions 24–28 document the choices and alternatives.
+
+New tests cover connection classification/causes, endpoint configuration, sanitized diagnostics, real local HTTP disconnection, and normal successful completion. Temporarily reversing the disconnect guard made its regression fail; restoring the correct guard made it pass. This checks that specific intentional bug, not every possible future mutation.
+
+Validation: **69 unit/component/API tests and 8 desktop/mobile browser tests passed**; TypeScript and production build passed. A live one-day Jaipur request through the running app and configured Azure GPT 6 Luna Responses deployment returned HTTP 200 in 10.5 seconds. The extracted views were visually inspected with that result in an isolated browser at 1440px dark and 320px light; the narrow page had no horizontal overflow. The task-owned browser was closed afterwards.
+
+The independent review found no actionable issues. No new code changed after these passing checks. Streaming, public deployment, a clean-machine install, and broad mutation testing were not part of this follow-up. Provider cancellation remains best effort and cannot guarantee that upstream processing or charges stop.
 
 ## Original pre-flight decisions
 

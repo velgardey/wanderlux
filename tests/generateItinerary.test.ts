@@ -2,26 +2,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { generateItinerary } from '../server/generateItinerary.js';
 import { createItinerary } from './fixtures/itineraries.js';
-
-function providerResponse(text: string, status = 'completed') {
-  return new Response(
-    JSON.stringify({
-      id: 'response-test',
-      object: 'response',
-      status,
-      output: [
-        {
-          id: 'message-test',
-          type: 'message',
-          role: 'assistant',
-          status: 'completed',
-          content: [{ type: 'output_text', text, annotations: [] }],
-        },
-      ],
-    }),
-    { status: 200, headers: { 'Content-Type': 'application/json' } },
-  );
-}
+import { providerResponse } from './fixtures/providerResponse.js';
+import OpenAI from 'openai';
 
 beforeEach(() => {
   vi.stubEnv('AZURE_OPENAI_ENDPOINT', 'https://test.services.ai.azure.com/openai/v1');
@@ -36,6 +18,33 @@ afterEach(() => {
 });
 
 describe('Azure Responses integration', () => {
+  it('classifies a provider connection failure and retains its original cause', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Private connection details')));
+    const error = await generateItinerary(
+      { mode: 'generate', prompt: 'Jaipur' },
+      new AbortController().signal,
+    ).catch((failure) => failure);
+    expect(error).toMatchObject({ status: 503, code: 'CONNECTION_FAILED' });
+    expect(error.cause).toBeInstanceOf(OpenAI.APIConnectionError);
+    expect(error.message).not.toContain('Private connection details');
+  });
+
+  it.each([
+    'https://test.services.ai.azure.com',
+    'https://test.services.ai.azure.com/openai/v2',
+    'http://test.services.ai.azure.com/openai/v1',
+  ])('rejects an incomplete or unsupported endpoint before calling Azure: %s', async (endpoint) => {
+    vi.stubEnv('AZURE_OPENAI_ENDPOINT', endpoint);
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(providerResponse(JSON.stringify(createItinerary())));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(
+      generateItinerary({ mode: 'generate', prompt: 'Jaipur' }, new AbortController().signal),
+    ).rejects.toMatchObject({ status: 503, code: 'INVALID_CONFIGURATION' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('accepts a valid generation that needs more than the old 30-second limit', async () => {
     vi.useFakeTimers();
     vi.spyOn(AbortSignal, 'timeout').mockImplementation((milliseconds) => {

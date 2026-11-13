@@ -1,21 +1,12 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import {
-  ArrowRight,
-  Bookmark,
-  Check,
-  Compass,
-  LoaderCircle,
-  Moon,
-  RotateCcw,
-  Sparkles,
-  Sun,
-} from 'lucide-react';
+import { ArrowRight, Compass, LoaderCircle, Moon, RotateCcw, Sparkles, Sun } from 'lucide-react';
 import { usePlanner } from './hooks/usePlanner.js';
 import { readSessions, saveSession, sessionsStorageKey } from './lib/storage.js';
-import { formatDuration } from './lib/itinerary.js';
 import { ItineraryView } from './components/Itinerary.js';
 import { ResultBlocks } from './components/ResultBlocks.js';
 import { EmptyItinerary } from './components/EmptyItinerary.js';
+import { SavedTrips } from './components/SavedTrips.js';
+import { TripSummary } from './components/TripSummary.js';
 import type { SavedSession } from '../shared/itinerary.js';
 import { providerTimeoutMs } from '../shared/requestLimits.js';
 
@@ -52,13 +43,6 @@ export default function App() {
   });
   const busy = planner.status === 'loading';
   const itinerary = planner.itinerary;
-  const stopCount = itinerary?.days.reduce((total, day) => total + day.stops.length, 0) ?? 0;
-  const activityMinutes =
-    itinerary?.days.reduce(
-      (total, day) =>
-        total + day.stops.reduce((minutes, stop) => minutes + stop.durationMinutes, 0),
-      0,
-    ) ?? 0;
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -251,44 +235,12 @@ export default function App() {
             ) : null}
           </form>
 
-          <section
-            className="mt-[26px] border-t border-line pt-6 tablet:mt-[34px]"
-            aria-labelledby="saved-heading"
-          >
-            <div className="mb-3 flex items-center gap-2">
-              <Bookmark size={17} aria-hidden="true" />
-              <h2 className="text-sm font-semibold" id="saved-heading">
-                Saved trips
-              </h2>
-              <span className="ml-auto text-[11px] text-muted">{savedState.trips.length} / 5</span>
-            </div>
-            {savedState.trips.length === 0 ? (
-              <p className="small-copy">Your saved plans will stay in this browser.</p>
-            ) : (
-              <ul className="m-0 list-none p-0">
-                {savedState.trips.map((session) => (
-                  <li key={session.id}>
-                    <button
-                      className="flex min-h-11 w-full items-center justify-between gap-3.5 border-0 border-b border-line bg-transparent py-3 text-left text-xs hover:text-accent"
-                      onClick={() => loadTrip(session)}
-                      aria-label={`Load ${session.itinerary.title}`}
-                    >
-                      <span className="min-w-0 wrap-anywhere">{session.itinerary.title}</span>
-                      <ArrowRight size={16} aria-hidden="true" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {savedState.error ? (
-              <div className="mt-3.5 text-[13px] leading-[1.6] text-danger" role="alert">
-                <p>{savedState.error}</p>
-                <button className="text-button mt-1.5 pl-0 text-danger" onClick={resetSavedTrips}>
-                  Reset saved trips
-                </button>
-              </div>
-            ) : null}
-          </section>
+          <SavedTrips
+            trips={savedState.trips}
+            error={savedState.error}
+            onLoad={loadTrip}
+            onReset={resetSavedTrips}
+          />
           <p className="mt-[26px] text-[11px] leading-[1.7] text-muted tablet:max-w-[30ch]">
             Your brief is sent to the AI service. Saved trips stay on this device.
           </p>
@@ -300,50 +252,12 @@ export default function App() {
         >
           {itinerary ? (
             <>
-              <div>
-                <div className="flex flex-col items-start justify-between gap-4 phone:flex-row phone:gap-5">
-                  <h2 className="font-display text-[28px] leading-[1.2] font-normal tracking-[-0.025em] wrap-anywhere phone:text-[32px]">
-                    {itinerary.title}
-                  </h2>
-                  <button
-                    className="button button-secondary w-full shrink-0 phone:w-auto"
-                    onClick={saveCurrentTrip}
-                    disabled={busy}
-                  >
-                    <Bookmark size={16} aria-hidden="true" />
-                    Save trip
-                  </button>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2.5 text-xs text-muted">
-                  <span>
-                    {itinerary.days.length} {itinerary.days.length === 1 ? 'day' : 'days'}
-                  </span>
-                  <span className="relative before:absolute before:top-1.5 before:-left-[9px] before:size-[3px] before:rounded-full before:bg-muted before:content-['']">
-                    {stopCount} {stopCount === 1 ? 'stop' : 'stops'}
-                  </span>
-                  <span className="relative before:absolute before:top-1.5 before:-left-[9px] before:size-[3px] before:rounded-full before:bg-muted before:content-['']">
-                    {formatDuration(activityMinutes)} of activities
-                  </span>
-                </div>
-                {itinerary.assumptions.length > 0 ? (
-                  <ul className="mt-4 list-disc pl-4 text-xs leading-[1.7] text-muted">
-                    {itinerary.assumptions.map((assumption, index) => (
-                      <li key={index}>{assumption}</li>
-                    ))}
-                  </ul>
-                ) : null}
-                <p
-                  className="mt-[13px] flex items-center gap-1.5 text-xs text-accent empty:hidden"
-                  role="status"
-                >
-                  {saveNotice ? (
-                    <>
-                      <Check size={14} aria-hidden="true" />
-                      {saveNotice}
-                    </>
-                  ) : null}
-                </p>
-              </div>
+              <TripSummary
+                itinerary={itinerary}
+                busy={busy}
+                saveNotice={saveNotice}
+                onSave={saveCurrentTrip}
+              />
               <ItineraryView
                 itinerary={itinerary}
                 expandedStopIds={planner.expandedStopIds}

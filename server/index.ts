@@ -1,4 +1,6 @@
 import express from 'express';
+import OpenAI from 'openai';
+import { z } from 'zod';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { generateItinerary, PlannerError } from './generateItinerary.js';
@@ -42,7 +44,21 @@ app.post('/api/itinerary', async (request, response) => {
             500,
             'SERVER_ERROR',
             'Something went wrong on the server. Please try again.',
+            { cause: error },
           );
+    const originalError = safeError.cause ?? safeError;
+    // Log diagnostic metadata only: never the exception object, message, headers, or input.
+    console.error('Trip planner request failed', {
+      operation: checkedRequest.data.mode,
+      code: safeError.code,
+      status: safeError.status,
+      errorClass: originalError instanceof Error ? originalError.constructor.name : 'UnknownError',
+      providerStatus: originalError instanceof OpenAI.APIError ? originalError.status : undefined,
+      validationPaths:
+        originalError instanceof z.ZodError
+          ? originalError.issues.map((issue) => issue.path.join('.') || '<root>')
+          : undefined,
+    });
     response
       .status(safeError.status)
       .json({ error: { code: safeError.code, message: safeError.message } });

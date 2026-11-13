@@ -6,6 +6,8 @@ This is a guide to the actual code. Read the files in this order. The decision l
 
 `App` owns the text currently being typed, the refinement text, local save notices, and the theme. These are screen concerns. It calls `usePlanner` for the itinerary and request behavior, then passes data and callbacks to components.
 
+`SavedTrips` renders the saved-trip list, empty state, and storage error. `TripSummary` renders the title, current totals, assumptions, Save button, and save notice. Neither component reads storage or runs requests. Keeping those sections in named files lets you change their presentation without searching the whole screen. `App` keeps the save/load/reset handlers because those coordinate screen and planner state.
+
 `draftPrompt` is what the textarea currently says. `planner.prompt` is the brief belonging to the last successful itinerary. They are deliberately different: typing a new brief or failing a new request must not attach that new brief to the older trip when it is saved.
 
 The submit handlers call `event.preventDefault()` because we want React to handle the form instead of reloading the page. `void planner.generate(...)` starts an async operation whose success/error is managed by the hook. The screen does not need to await it to redraw; state updates cause rendering.
@@ -66,6 +68,8 @@ Moves are only within a day. Out-of-range moves return the original object. Move
 
 Express parses JSON with a bounded body size, validates the request, and calls `generateItinerary`. It converts deliberately safe `PlannerError` instances into short JSON error envelopes. Malformed JSON and oversized bodies receive errors instead of crashing.
 
+On an itinerary failure, the server also writes one small diagnostic object with `console.error`. It contains the operation, public error code/status, original error class, provider HTTP status, and validation field paths. It deliberately excludes exception messages, stacks, headers, API keys, prompts, model text, and the whole error object. `PlannerError` uses native `ErrorOptions.cause` to retain the original exception for a local debugger; the HTTP response still serializes only the safe code and message. No extra logging library is needed for this local app.
+
 When the browser disconnects before the response is finished, the server aborts the provider request. The listener is removed afterwards. The production build serves client files from the same origin, avoiding unnecessary CORS configuration.
 
 The module exports `app` for Supertest without opening a port on import. The main-file check opens a port only when the server is run directly. This keeps tests reproducible and prevents accidental listening during imports.
@@ -74,9 +78,13 @@ The module exports `app` for Supertest without opening a port on import. The mai
 
 This file reads Azure settings from the server environment. The key is never returned to React. The endpoint and deployment are the values the user supplied.
 
+The endpoint must be HTTPS and end in `/openai/v1`, optionally followed by `/`. A resource host without that path fails before any provider call. URL credentials, query parameters, and fragments are rejected so configuration remains an unambiguous API base URL. `.env.example` shows the complete endpoint.
+
 Microsoft's examples use the official OpenAI SDK with the Azure v1 endpoint. `zodTextFormat` converts the structural schema to the provider's strict JSON format, and `responses.parse` extracts/parses the result. This saves us from writing a custom Responses envelope parser. We still reject incomplete/empty responses and run the relationship checks locally.
 
 The prompt explains the required shape, travel limits, assumptions, and refinement behavior. A refinement input contains the **current** edited itinerary rather than the original response. IDs are preserved when possible so local presentation state can survive.
+
+The SDK's connection errors inherit from its general `APIError`. Catch timeouts first, then connection errors, then general HTTP errors. Reversing those checks makes the connection branch unreachable. The regression simulates an offline provider and checks both `CONNECTION_FAILED` and the retained original cause.
 
 The SDK timeout is 120 seconds and automatic retries are off. The original 30 seconds proved too short: a seven-day generation succeeded in 31.3 seconds after extending the limit. An independent timeout signal covers the whole response as well: the SDK's fetch timer can finish when headers arrive, before a slow error body is read. Combining that deadline with caller cancellation prevents indefinite waiting at that boundary. Errors become messages we wrote ourselves; provider diagnostics, keys, and stacks are not echoed. Abort is best effort: it protects our app state and network work but cannot guarantee the provider stops processing or charging.
 
@@ -86,6 +94,8 @@ The SDK timeout is 120 seconds and automatic retries are off. The original 30 se
 - `StopCard.tsx` owns no itinerary data. It renders a stop and calls its props. React-generated DOM IDs connect the expansion button to details without trusting a model ID as a DOM identifier.
 - `ResultBlocks.tsx` renders each known union variant. Checkboxes are controlled by local checked IDs. Chart bars derive from current durations, so removing a stop updates the chart.
 - `EmptyItinerary.tsx` is the initial/loading-empty state. It contains no fake itinerary or substitute model response.
+- `SavedTrips.tsx` renders saved sessions and delegates Load/Reset through callbacks.
+- `TripSummary.tsx` calculates current stop/activity totals and delegates Save through a callback.
 
 The Lucide icon library supplies a consistent icon set rather than hand-maintained SVG paths for every button. Icons are decorative when the button already has text or an accessible name. Tailwind's theme in `styles.css` gives the utilities meaningful colors such as `text-muted`, `bg-surface`, and `border-line` instead of duplicating color values.
 
@@ -100,6 +110,8 @@ Invalid data is not silently deleted. The screen reports the error and offers an
 `tests/fixtures/itineraries.ts` creates small deterministic example data. The working app does not use those fixtures. Logic tests check validation and immutable edits. Testing Library checks hook behavior with controlled promises, and screen tests click the actual React controls. Supertest checks HTTP parsing/error boundaries. Playwright checks the rendered app in installed Chrome on desktop and mobile.
 
 Mocks are at the network/provider boundary so failures are reproducible and tests do not consume quota. Live generation/refinement are checked separately. Read the race-condition tests first if you need to explain the most valuable reliability behavior in an interview.
+
+The HTTP cancellation test opens a real local socket, starts a mocked provider request, disconnects the browser side, and checks the provider's abort signal. A second test proves normal completion does not abort it. We deliberately reversed the disconnect guard, watched the regression fail, and restored the correct guard. This proves that particular introduced bug is caught; it is not a claim that every possible future bug is covered. `tests/fixtures/providerResponse.ts` shares the small Responses envelope between provider and HTTP tests.
 
 ## 11. Tailwind styling: JSX and `src/styles.css`
 
@@ -119,9 +131,18 @@ The `@theme inline` colors reference ordinary CSS variables. Setting `document.d
 
 Only repeated controls keep names such as `button`, `icon-button`, and `form-field`. Their `@apply` rules combine Tailwind utilities in `@layer components`. Element-specific utilities are in the later utilities layer, so `p-3` or `rounded-lg` can override a shared field default. This keeps repeated controls understandable without adding a wrapper component or class-building library.
 
+Repeated decorative styling follows the same rule: `trip-fact` draws the small separator before the second and third totals. Its Tailwind pseudo-element utilities live once in the stylesheet, making the summary's JSX easier to read.
+
 Variants express states: `enabled:hover:bg-line`, `empty:hidden`, and `peer-checked:line-through`. The checklist input has `peer`; its following label text responds to that input's checked state. Dynamic chart width stays in `style` because it comes from a number at runtime. All Tailwind class strings remain complete literals so the build can find them.
 
 To restyle: edit a utility in the component for a local change; edit a shared control rule for every matching control; edit the root theme variables for colors across the app. Keep visible keyboard focus and reduced-motion rules intact. The stop-title browser locator uses a test ID so changing its visual classes cannot break the test.
+
+## 12. Debug a failure or a deliberately introduced bug
+
+1. Reproduce one action and note the browser's error. Check the API terminal's diagnostic entry for the same operation. `CONNECTION_FAILED` points to transport, `PROVIDER_FAILED` plus an HTTP status points to provider configuration/service behavior, and `INVALID_OUTPUT` plus a Zod field path points to the data contract.
+2. Open the file for that boundary. Provider requests/configuration are in `server/generateItinerary.ts`; HTTP cancellation/error serialization are in `server/index.ts`; browser parsing is in `src/lib/api.ts`; state races and retry are in `src/hooks/usePlanner.ts`; local edits and persistence are in `src/lib`. Put a debugger breakpoint in the catch block if you need to inspect the retained `cause` locally.
+3. Run the matching test file from `C:\Projects\wanderlux`, for example `pnpm exec vitest run tests/generateItinerary.test.ts` or `pnpm exec vitest run tests/server.test.ts`. If the bug still exists while those tests pass, add a small regression for its exact trigger before fixing it.
+4. Fix the common cause in one place, then run `pnpm test` and `pnpm build`. For a screen or keyboard change, also run `pnpm test:e2e`. A deliberate mutation should be temporary: prove the test fails, restore the working code, and prove it passes again.
 
 ## Small extension exercises
 

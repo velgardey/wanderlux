@@ -107,6 +107,10 @@
 
 /* Repeated controls get readable names; layout utilities live beside their JSX. */
 @layer components {
+  .trip-fact {
+    @apply relative before:absolute before:top-1.5 before:-left-[9px] before:size-[3px]
+      before:rounded-full before:bg-muted before:content-[''];
+  }
   .button {
     @apply inline-flex min-h-[46px] items-center justify-center gap-[9px] rounded-lg
       border-0 px-4 py-3 text-[13px] font-semibold transition-[background,transform]

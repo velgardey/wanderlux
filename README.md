@@ -68,6 +68,8 @@ App form -> usePlanner -> internal /api/itinerary
 
 The OpenAI SDK formats and sends the structured-output request, extracts/parses the response, and supports cancellation. Our runtime schemas still check field bounds, consecutive day numbers, and globally unique IDs. TypeScript alone cannot validate network or saved data.
 
+`SavedTrips` and `TripSummary` keep those screen sections in focused files; `App` coordinates their callbacks. Server failures retain their original cause and produce sanitized terminal diagnostics, while browser errors remain short and safe. The walkthrough includes a step-by-step debugging procedure.
+
 ## Reliability and tests
 
 ```powershell
@@ -80,6 +82,8 @@ pnpm build
 Browser tests use installed Chrome through Playwright Test, with desktop and 390px mobile viewports. Install Chrome if it is absent; this project does not download an additional browser by default. Tests replace the provider/API boundary with deterministic fixtures; the working app always calls Azure.
 
 The tests cover malformed/wrong-shaped/empty output, duplicate IDs, edited empty days, invalid requests, rate limits, corrupted/denied storage, API errors, out-of-order promises, cancellation, obsolete retries, save/reload, refinements, keyboard entry, and mobile overflow. Live smoke tests are separate and consume provider quota.
+
+Focused regressions also cover SDK connection-error classification, complete endpoint validation, safe diagnostic logging, and provider cancellation after a real local HTTP disconnect. The disconnect test was checked against a deliberately reversed condition and detected the bug; normal-completion cancellation is checked separately.
 
 Automatic provider retries are disabled. The server/provider deadline is 120 seconds and the client deadline is 130 seconds. Both values come from `shared/requestLimits.ts`; the extra ten seconds let the server return a clear error before the browser gives up. A live seven-day generation took 31.3 seconds, exceeding the original 30-second cutoff. Abort is best effort and cannot guarantee cancellation of provider processing or charges. A request counter also prevents stale results and errors from overwriting newer work.
 

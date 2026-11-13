@@ -17,8 +17,9 @@ export class PlannerError extends Error {
     public status: number,
     public code: string,
     message: string,
+    options?: ErrorOptions,
   ) {
-    super(message);
+    super(message, options);
     this.name = 'PlannerError';
   }
 }
@@ -46,6 +47,7 @@ export async function generateItinerary(
       400,
       'INVALID_REQUEST',
       'Describe a trip or enter a valid refinement instruction.',
+      { cause: checkedRequest.error },
     );
   }
 
@@ -63,12 +65,22 @@ export async function generateItinerary(
   let baseURL: URL;
   try {
     baseURL = new URL(endpoint.endsWith('/') ? endpoint : `${endpoint}/`);
-    if (baseURL.protocol !== 'https:') throw new Error('HTTPS is required.');
-  } catch {
+    if (
+      baseURL.protocol !== 'https:' ||
+      baseURL.pathname !== '/openai/v1/' ||
+      baseURL.username ||
+      baseURL.password ||
+      baseURL.search ||
+      baseURL.hash
+    ) {
+      throw new Error('Use a complete HTTPS endpoint ending in /openai/v1.');
+    }
+  } catch (error) {
     throw new PlannerError(
       503,
       'INVALID_CONFIGURATION',
-      'The server needs a valid HTTPS Azure v1 endpoint.',
+      'The server needs a complete HTTPS Azure endpoint ending in /openai/v1.',
+      { cause: error },
     );
   }
 
@@ -122,17 +134,31 @@ export async function generateItinerary(
         502,
         'INVALID_OUTPUT',
         "The model returned an itinerary we couldn't use. Please retry.",
+        { cause: checkedItinerary.error },
       );
     }
     return checkedItinerary.data;
   } catch (error) {
     if (signal.aborted) throw error;
     if (deadlineSignal.aborted) {
-      throw new PlannerError(504, 'TIMEOUT', 'This is taking too long. Try again.');
+      throw new PlannerError(504, 'TIMEOUT', 'This is taking too long. Try again.', {
+        cause: error,
+      });
     }
     if (error instanceof PlannerError) throw error;
     if (error instanceof OpenAI.APIConnectionTimeoutError) {
-      throw new PlannerError(504, 'TIMEOUT', 'This is taking too long. Try again.');
+      throw new PlannerError(504, 'TIMEOUT', 'This is taking too long. Try again.', {
+        cause: error,
+      });
+    }
+    // Connection errors inherit APIError, so the more specific checks must come first.
+    if (error instanceof OpenAI.APIConnectionError) {
+      throw new PlannerError(
+        503,
+        'CONNECTION_FAILED',
+        'The AI service could not be reached. Please try again.',
+        { cause: error },
+      );
     }
     if (error instanceof OpenAI.APIError) {
       if (error.status === 429) {
@@ -140,25 +166,21 @@ export async function generateItinerary(
           429,
           'RATE_LIMIT',
           'The AI service is busy. Please try again later.',
+          { cause: error },
         );
       }
       throw new PlannerError(
         503,
         'PROVIDER_FAILED',
         'The AI service could not complete the request. Check the server configuration or try again.',
-      );
-    }
-    if (error instanceof OpenAI.APIConnectionError) {
-      throw new PlannerError(
-        503,
-        'CONNECTION_FAILED',
-        'The AI service could not be reached. Please try again.',
+        { cause: error },
       );
     }
     throw new PlannerError(
       502,
       'INVALID_OUTPUT',
       "The model returned an itinerary we couldn't use. Please retry.",
+      { cause: error },
     );
   }
 }
