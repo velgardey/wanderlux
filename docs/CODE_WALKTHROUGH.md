@@ -144,6 +144,26 @@ To restyle: edit a utility in the component for a local change; edit a shared co
 3. Run the matching test file from `C:\Projects\wanderlux`, for example `pnpm exec vitest run tests/generateItinerary.test.ts` or `pnpm exec vitest run tests/server.test.ts`. If the bug still exists while those tests pass, add a small regression for its exact trigger before fixing it.
 4. Fix the common cause in one place, then run `pnpm test` and `pnpm build`. For a screen or keyboard change, also run `pnpm test:e2e`. A deliberate mutation should be temporary: prove the test fails, restore the working code, and prove it passes again.
 
+## 13. The optional map
+
+Read `ItineraryMap.tsx`, `MapView.tsx`, `useMapLocations.ts`, `src/lib/locations.ts`, `shared/map.ts`, then `server/geocodeLocation.ts`.
+
+`ItineraryMap` owns the Show/Hide state. Its caught dynamic import downloads the Leaflet component only when opened; a failed JS/CSS download stays inside this section instead of throwing through React and losing an unsaved trip. The loaded component is held in state. `setMapView(() => module.default)` stores that component function rather than asking React to call it as a state updater. If the download fails, save the trip before reloading to retry; browsers can retain failed module downloads until a page reload.
+
+`MapView` derives pins, stop numbers and straight segments from the current itinerary plus a map of resolved locations. It never owns or edits itinerary data. Stops at identical coordinates share one pin, with all their entries in its popup. A `+` after the first number indicates a group. Number `2.3` means day two, stop three. Popups have bounded width/height and scroll for large groups. Missing locations interrupt connecting segments; the app does not draw a line skipping an unresolved adjacent stop.
+
+Leaflet's map instance comes from `useMap`. `FitMap` calls `fitBounds` when resolved stops change, with padding, no animation, and a maximum zoom for a single point. Marker title is a creation-only option in React Leaflet 5, so its React key includes the current title; reordering or renaming recreates the pin with the correct accessible name. Only numeric day/stop labels and fixed colors enter `divIcon` HTML. User/provider text stays in React children, which escape it.
+
+The marker's add event assigns `aria-label` to the created div icon. Otherwise a screen reader sees only its visible number, even when the title contains the stop name. Zoom controls use a more specific selector because Leaflet's later-loaded touch stylesheet otherwise restores smaller buttons; the browser tests verify 44px targets.
+
+`useMapLocations` deduplicates location strings with a native Set, then requests them sequentially. A Map ref keeps successful/no-match results between edits; a copied Map in state triggers rendering as each lookup finishes. Failures can retry without repeating successful lookups. Cleanup aborts the current request, and the post-await abort check ignores late responses from a previous trip. A microtask lets React's development effect setup/cleanup check finish before starting network work, avoiding a duplicate first query. Vite pre-bundles the two lazy libraries so first opening the map cannot reload the development page.
+
+`requestLocation` sends a safely encoded location query to our own Express route, with a 15-second browser deadline. The route validates the 200-character query and cancels disconnected lookups. `geocodeLocation` uses the existing Zod and PlannerError plus native fetch/AbortSignal and Node's cancellable timer; a custom geocoding SDK is unnecessary for one endpoint. Photon returns GeoJSON longitude first; the server validates the numeric bounds, then returns named latitude/longitude fields. The original saved itinerary schema stays unchanged, so older sessions still work.
+
+The server promise queue serializes lookups across browser requests and spaces service calls by at least 1.1 seconds. A failed lookup cannot poison the queue. Successful matches and misses are cached by endpoint/query, capped at 256 entries. This cache resets on process restart; upgrade to a shared persistent cache for a hosted app. The 10-second server deadline covers queueing, fetch and body reading. Public Photon's usage must stay modest; change `PHOTON_ENDPOINT` for a hosted/private service. Map tile loading is ordinary browser loading with OpenStreetMap attribution, not bulk downloading. Tile failures get a notice and Retry map while located pins remain available.
+
+To debug a map: check the browser request to `/api/location`, run `pnpm exec vitest run tests/geocodeLocation.test.ts tests/locations.test.ts tests/useMapLocations.test.tsx`, and inspect a popup's matched location. For missing places, improve the searchable location text; a schema-valid match does not guarantee the correct real-world place. Test visual/keyboard changes with `pnpm test:e2e`. The failed-download regression demonstrates saving/reloading safely; the grouped-popup regression checks the final stop is reachable at 320px.
+
 ## Small extension exercises
 
 ### Add a stop category

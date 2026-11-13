@@ -18,6 +18,50 @@ afterEach(() => {
 });
 
 describe('HTTP trust boundary', () => {
+  it('rejects invalid map queries before contacting the lookup service', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const response = await request(app).get('/api/location').query({ query: ' ' });
+    expect(response.status).toBe(400);
+    expect(response.body.error.code).toBe('INVALID_LOCATION');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('returns validated map coordinates through the HTTP route', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            features: [
+              {
+                geometry: { type: 'Point', coordinates: [75.82, 26.92] },
+                properties: { name: 'Jaipur' },
+              },
+            ],
+          }),
+        ),
+      ),
+    );
+    const response = await request(app).get('/api/location').query({ query: 'Jaipur route test' });
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      location: { latitude: 26.92, longitude: 75.82, label: 'Jaipur' },
+    });
+  });
+
+  it('returns a safe map error without exposing the provider body', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response('PRIVATE_MAP_PROVIDER_BODY', { status: 429 })),
+    );
+    const response = await request(app)
+      .get('/api/location')
+      .query({ query: 'Private error route test' });
+    expect(response.status).toBe(503);
+    expect(response.body.error.code).toBe('MAP_LOOKUP_FAILED');
+    expect(response.text).not.toContain('PRIVATE_MAP_PROVIDER_BODY');
+  });
   it('aborts the provider signal when the browser disconnects', async () => {
     vi.stubEnv('AZURE_OPENAI_ENDPOINT', 'https://test.services.ai.azure.com/openai/v1');
     vi.stubEnv('AZURE_OPENAI_DEPLOYMENT', 'gpt-6-luna');
@@ -91,19 +135,17 @@ describe('HTTP trust boundary', () => {
     vi.stubEnv('AZURE_OPENAI_API_KEY', 'private-test-key');
     vi.stubGlobal(
       'fetch',
-      vi
-        .fn()
-        .mockResolvedValue(
-          new Response(
-            JSON.stringify({
-              error: { message: 'PRIVATE_PROVIDER_BODY', code: 'PRIVATE_PROVIDER_CODE' },
-            }),
-            {
-              status: 401,
-              headers: { 'Content-Type': 'application/json', 'x-request-id': 'PRIVATE_HEADER' },
-            },
-          ),
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            error: { message: 'PRIVATE_PROVIDER_BODY', code: 'PRIVATE_PROVIDER_CODE' },
+          }),
+          {
+            status: 401,
+            headers: { 'Content-Type': 'application/json', 'x-request-id': 'PRIVATE_HEADER' },
+          },
         ),
+      ),
     );
     const response = await request(app)
       .post('/api/itinerary')

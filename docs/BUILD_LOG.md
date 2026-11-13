@@ -9,7 +9,7 @@ The user approved implementation and requested readable, explicit code and expla
 - Tasks 1-4 complete: setup, shared validation, Azure integration, interactive UI, and request/error protection.
 - Tasks 5-8 complete: five-session persistence, refinement, typed blocks, responsive layout, keyboard operation, and themes.
 - Task 9 complete locally: README, code walkthrough, decisions, short recording, locked install/build/start checks, and review. Public repository publication and deployment remain outside this authorized local build.
-- Unit/component/HTTP tests: **69 passed** after the readability and debugging regressions. Browser tests: **8 passed**, desktop and mobile with installed Chrome. TypeScript and production build pass.
+- Unit/component/HTTP tests: **84 passed** after the map and readability regressions. Browser tests: **16 passed**, desktop and mobile with installed Chrome. TypeScript and production build pass.
 - Provider: the supplied Azure v1 endpoint and `gpt-6-luna` were used for multiple real generations and refinements. Structured cards/checklists/chart blocks rendered successfully; one refinement preserved current stop IDs and a checked packing item.
 - Production: static client, API health, and safe invalid-request handling checked on the built server. Client assets scanned for the actual environment key; it was absent. `.env` is ignored and untracked.
 - Visual verification: desktop, 390px, and 320px captures inspected; mobile spacing and final-stop focus behavior checked.
@@ -48,6 +48,18 @@ New tests cover connection classification/causes, endpoint configuration, saniti
 Validation: **69 unit/component/API tests and 8 desktop/mobile browser tests passed**; TypeScript and production build passed. A live one-day Jaipur request through the running app and configured Azure GPT 6 Luna Responses deployment returned HTTP 200 in 10.5 seconds. The extracted views were visually inspected with that result in an isolated browser at 1440px dark and 320px light; the narrow page had no horizontal overflow. The task-owned browser was closed afterwards.
 
 The independent review found no actionable issues. No new code changed after these passing checks. Streaming, public deployment, a clean-machine install, and broad mutation testing were not part of this follow-up. Provider cancellation remains best effort and cannot guarantee that upstream processing or charges stop.
+
+## Follow-up: optional map and website copy
+
+The user authorized a minimal map using established libraries. React Leaflet 5 / Leaflet 1.9.4 renders numbered/day-colored pins, matched-place popups, and approximate adjacent-stop segments. Colocated stops share one pin. Location state stays separate from the itinerary and saved schema. Photon is proxied through Express with coordinate/query validation, bounded deadlines, serial calls at least 1.1 seconds apart, and a 256-entry process cache. The public demo permits modest use but has no availability guarantee; PHOTON_ENDPOINT can select another hosted/private search endpoint.
+
+Map code downloads and place lookup begin only when Show map is opened. Hiding aborts lookup work; edits reuse matches and stale responses are ignored. Vite pre-bundles lazy dependencies to avoid a development reload clearing a draft. React's development effect check no longer duplicates the first lookup. A matched place label appears in each popup; generic or ambiguous locations remain approximate. The two AI disclosure paragraphs and page footer were removed as requested; map attribution remains.
+
+Independent review identified large grouped popups clipping content and an uncaught failed map-module download clearing the app. Both were reproduced with failing browser regressions and fixed. Popups have bounded dimensions and scroll; module loading uses caught import state with save/reload recovery. Real pin controls have full screen-reader names and 44px markers/zoom controls.
+
+Final map verification: **84 unit/component/API tests and 16 Chrome browser tests passed**, typecheck/build passed. Live Photon lookup returned City Palace coordinates in Jaipur through the running app. Real tiles and two real place matches were visually inspected on desktop dark and 320px light; page width equaled 320px with no overflow. Browser tests cover editing/grouping, missing/retry, long popups, keyboard labels and failed-download recovery without public-service requests. Task-owned browser and temporary visual captures were cleaned up. Driving directions, hosted deployment and public-scale caching remain outside the map feature.
+
+On 14 November 2026, the user lifted the eight-hour working priority and requested a full readability/Ponytail audit plus removal of redundant assets, dependencies and temporary files. That follow-up is tracked separately.
 
 ## Original pre-flight decisions
 

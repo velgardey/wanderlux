@@ -127,3 +127,21 @@ References: [Tailwind with Vite](https://tailwindcss.com/docs/installation/using
 ## 28. Extract views while keeping orchestration visible
 
 **Choice:** Move saved-trip rendering to `SavedTrips` and itinerary header/totals/save rendering to `TripSummary`. Keep storage operations, screen state, and callbacks in `App`, and request state in `usePlanner`. Replace repeated separator class strings with one `trip-fact` component style. **Reason:** These are recognizable screen jobs that can be read and changed separately without new state ownership or a second abstraction system. **Considered:** introducing a state library, storage hook, generic card framework, or class helper, which would add concepts without simplifying the requested changes. Existing screen/browser tests exercise the components through their unchanged actions.
+
+## 29. Established map components, loaded on demand
+
+**Choice:** React Leaflet 5 and Leaflet 1.9.4, with the matching Leaflet TypeScript definitions. Catch the dynamic import in the optional map section, and pre-bundle dependencies in Vite development. **Reason:** These libraries already provide maps, markers, popups, keyboard controls and bounds fitting, and support the installed React 19. The main planner does not download map code until needed. **Considered:** Google Maps/Mapbox credentials and billing, or custom map rendering, which add work without a needed capability. React.lazy with only Suspense was insufficient: a failed map download could clear the trip. The caught import preserves working state and explains saving before reloading; a browser regression reproduces and verifies that recovery.
+
+## 30. Real lookups with bounded local-service use
+
+**Choice:** Photon via an Express proxy, native fetch, Zod coordinate validation, one serialized request at least 1.1 seconds apart, and a 256-entry process cache. An optional PHOTON_ENDPOINT permits switching service without rewriting components. **Reason:** Real place lookup is more useful than inventing coordinates; the public demo permits reasonable project use without another key. **Considered:** public Nominatim, whose policy needs an explicit informed developer decision rather than silently enabling it, and a geocoding SDK/rate-limit package, which would wrap a single endpoint or a few standard timer/promise lines. Photon has no availability guarantee; persistent/shared caching and a hosted/private service are needed for larger use. No browser autocomplete or bulk location job is added.
+
+## 31. Keep map presentation separate from trip data
+
+**Choice:** Resolve existing location strings separately; derive numbered/day-colored grouped pins and straight adjacent-stop segments from the current itinerary. Preserve the saved schema. **Reason:** Maps update on reorder/remove/refine without duplicating itinerary state or breaking old saves. Approximate place matches stay visible by name; missing stops stay editable. **Considered:** mandatory coordinate fields in model output/storage, arbitrary offsets for overlapping pins, and a routing/cluster service. Grouping actual identical coordinates is smaller and more accurate. Bounded scrollable popups keep every colocated stop reachable on a narrow screen.
+
+## 32. Remove the requested website copy
+
+**Choice:** Remove the service-disclosure paragraph, AI-generated suggestions paragraph and page footer. **Reason:** The user asked to simplify the website copy. **Considered:** replacing them with another generic disclaimer or adding marketing sections; neither helps the planner. Required OpenStreetMap/Photon attribution and the map's approximate-route explanation stay next to the map because they identify its data and practical limits.
+
+References: [React Leaflet setup](https://react-leaflet.js.org/docs/start-setup/), [Photon demo policy](https://github.com/komoot/photon#demo-server), [Nominatim policy](https://operations.osmfoundation.org/policies/nominatim/), [OpenStreetMap tile policy](https://operations.osmfoundation.org/policies/tiles/), and [Vite dependency optimization](https://vite.dev/config/dep-optimization-options).

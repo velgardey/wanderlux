@@ -5,6 +5,8 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { generateItinerary, PlannerError } from './generateItinerary.js';
 import { PlannerRequestSchema } from '../shared/itinerary.js';
+import { LocationQuerySchema } from '../shared/map.js';
+import { geocodeLocation } from './geocodeLocation.js';
 
 export const app = express();
 app.disable('x-powered-by');
@@ -12,6 +14,40 @@ app.use(express.json({ limit: '512kb' }));
 
 app.get('/api/health', (_request, response) => {
   response.json({ status: 'ok' });
+});
+
+app.get('/api/location', async (request, response) => {
+  const query = LocationQuerySchema.safeParse(request.query.query);
+  if (!query.success) {
+    response
+      .status(400)
+      .json({ error: { code: 'INVALID_LOCATION', message: 'Enter a valid location.' } });
+    return;
+  }
+  const controller = new AbortController();
+  function cancelDisconnectedLookup() {
+    if (!response.writableEnded) controller.abort();
+  }
+  response.on('close', cancelDisconnectedLookup);
+  try {
+    const location = await geocodeLocation(query.data, controller.signal);
+    if (!controller.signal.aborted) response.json({ location });
+  } catch (error) {
+    if (controller.signal.aborted) return;
+    const safeError =
+      error instanceof PlannerError
+        ? error
+        : new PlannerError(
+            503,
+            'MAP_LOOKUP_FAILED',
+            'Map locations could not be loaded. Try again.',
+          );
+    response
+      .status(safeError.status)
+      .json({ error: { code: safeError.code, message: safeError.message } });
+  } finally {
+    response.off('close', cancelDisconnectedLookup);
+  }
 });
 
 app.post('/api/itinerary', async (request, response) => {

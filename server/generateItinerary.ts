@@ -29,6 +29,7 @@ Support trips of one to seven days. If the duration is absent, assume three days
 For unsupported requests, refuse rather than silently truncate a longer trip.
 Return the supplied structured format. Use brief descriptions and realistic activity durations.
 Use consecutive day numbers starting at one and globally unique stop IDs.
+Use searchable place names with city and country in each location field. For a general break, name its neighborhood or area.
 Provide a useful travel-tip card, packing checklist, and activityMinutes chart when appropriate.
 Block IDs and checklist item IDs must also be unique.
 Disclose assumptions. Do not claim that opening hours or availability were checked live.

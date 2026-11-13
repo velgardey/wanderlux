@@ -49,8 +49,13 @@ Open [the built planner](http://127.0.0.1:3001). Express serves the built client
 3. Expand stops, move them up/down within their day, or remove them. These are immediate local edits.
 4. Enter a refinement such as “make day two less busy.” The AI receives the current edited itinerary.
 5. Check packing items and save the trip. Up to five sessions can be reloaded in this browser; saving an existing session updates it.
+6. Open **Show map** below the stops to see numbered pins, day colors and matched-place popups. The map follows edits; colocated stops share a pin.
 
 Generated results may include a travel tip, a packing checklist, and a chart of planned activity time. Chart values come from the current stops so removals update the totals. The theme toggle supports light/dark mode and motion respects the operating system's reduced-motion preference.
+
+The map uses React Leaflet 5 / Leaflet 1.9.4, OpenStreetMap tiles, and [Photon place lookup](https://github.com/komoot/photon#demo-server). No additional API key is needed for the modest local demo. Lookups start only when opened, run one at a time at least 1.1 seconds apart, and cache up to 256 results on the server. A long itinerary can take longer to locate; pins appear progressively. `PHOTON_ENDPOINT` can override the default `https://photon.komoot.io/api/` search endpoint. The public demo permits reasonable usage but may throttle or become unavailable; use an appropriate hosted/private instance before scaling.
+
+Location names should include the place, city and country. Pins are approximate matches; popups show the matched name so you can check it. Lines show visit order, not walking/driving routes. Missing places remain editable and savable. If a map-file download fails, the trip stays open; save it before reloading the page to retry. Required map/data attribution remains inside the map section.
 
 ## Learn the code
 
@@ -84,6 +89,8 @@ Browser tests use installed Chrome through Playwright Test, with desktop and 390
 The tests cover malformed/wrong-shaped/empty output, duplicate IDs, edited empty days, invalid requests, rate limits, corrupted/denied storage, API errors, out-of-order promises, cancellation, obsolete retries, save/reload, refinements, keyboard entry, and mobile overflow. Live smoke tests are separate and consume provider quota.
 
 Focused regressions also cover SDK connection-error classification, complete endpoint validation, safe diagnostic logging, and provider cancellation after a real local HTTP disconnect. The disconnect test was checked against a deliberately reversed condition and detected the bug; normal-completion cancellation is checked separately.
+
+Map tests cover GeoJSON coordinate order/ranges, cached misses, serialized lookups, cancellation/stale results, retry, development-mode effect checks, grouped pins, editing, long scrollable popups at 320px, and failed map-file downloads. Browser tests mock map lookup/tile responses so they do not consume public-service capacity; live map checks are separate.
 
 Automatic provider retries are disabled. The server/provider deadline is 120 seconds and the client deadline is 130 seconds. Both values come from `shared/requestLimits.ts`; the extra ten seconds let the server return a clear error before the browser gives up. A live seven-day generation took 31.3 seconds, exceeding the original 30-second cutoff. Abort is best effort and cannot guarantee cancellation of provider processing or charges. A request counter also prevents stale results and errors from overwriting newer work.
 

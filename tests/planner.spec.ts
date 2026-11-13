@@ -1,6 +1,177 @@
 import { expect, test } from '@playwright/test';
 import { createItinerary } from './fixtures/itineraries.js';
 
+test('a failed map module download preserves the working trip', async ({ page }) => {
+  await page.route('**/api/itinerary', (route) =>
+    route.fulfill({ json: { itinerary: createItinerary() } }),
+  );
+  await page.route('**/src/components/MapView.tsx*', (route) => route.abort());
+  await page.route('**/api/location?*', (route) => route.fulfill({ json: { location: null } }));
+  await page.goto('/');
+  await page.getByLabel('Your trip').fill('Jaipur');
+  await page.getByRole('button', { name: 'Generate itinerary' }).click();
+  await page.getByRole('button', { name: 'Show map' }).click();
+  await expect(page.getByRole('alert')).toContainText('The map could not open');
+  await expect(page.getByRole('heading', { name: 'Three days in Jaipur' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Save trip', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: 'Hide map' }).click();
+  await page.getByRole('button', { name: 'Remove City Palace' }).click();
+  await expect(page.getByTestId('stop-title').filter({ hasText: 'City Palace' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Save trip', exact: true }).click();
+  await page.unroute('**/src/components/MapView.tsx*');
+  await page.reload();
+  await page.getByRole('button', { name: 'Load Three days in Jaipur' }).click();
+  await page.getByRole('button', { name: 'Show map' }).click();
+  await expect(page.getByText('No locations to display on the map.')).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+});
+
+test('large grouped popups fit a narrow map and can scroll', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  const itinerary = createItinerary();
+  itinerary.days = [
+    {
+      ...itinerary.days[0],
+      stops: Array.from({ length: 8 }, (_, index) => ({
+        ...itinerary.days[0].stops[0],
+        id: `group-${index}`,
+        title: `Stop ${index + 1} with a longer readable title`,
+      })),
+    },
+  ];
+  await page.route('**/api/itinerary', (route) => route.fulfill({ json: { itinerary } }));
+  await page.route('**/api/location?*', (route) =>
+    route.fulfill({
+      json: {
+        location: {
+          latitude: 26.92,
+          longitude: 75.82,
+          label: 'A long matched place label in Jaipur, Rajasthan, India. '.repeat(5),
+        },
+      },
+    }),
+  );
+  await page.route('https://tile.openstreetmap.org/**', (route) => route.abort());
+  await page.goto('/');
+  await page.getByLabel('Your trip').fill('Jaipur');
+  await page.getByRole('button', { name: 'Generate itinerary' }).click();
+  await page.getByRole('button', { name: 'Show map' }).click();
+  await page.locator('.leaflet-marker-icon').click();
+  const content = page.locator('.leaflet-popup-content');
+  await expect(content).toBeVisible();
+  expect(await content.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(
+    true,
+  );
+  const popup = await page.locator('.leaflet-popup').boundingBox();
+  const map = await page.getByRole('region', { name: 'Itinerary map' }).boundingBox();
+  expect(popup!.width).toBeLessThanOrEqual(map!.width);
+  const lastStop = content.getByText('1.8 · Stop 8 with a longer readable title');
+  await lastStop.scrollIntoViewIfNeeded();
+  expect(await content.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  await expect(lastStop).toBeInViewport();
+});
+
+test('optional map groups colocated stops and follows itinerary edits', async ({ page }) => {
+  const locationQueries: string[] = [];
+  await page.route('**/api/itinerary', (route) =>
+    route.fulfill({ json: { itinerary: createItinerary() } }),
+  );
+  await page.route('**/api/location?*', async (route) => {
+    const query = new URL(route.request().url()).searchParams.get('query')!;
+    locationQueries.push(query);
+    const location =
+      query === 'Jaipur'
+        ? null
+        : {
+            latitude: query === 'Old Jaipur' ? 26.9258 : 26.916,
+            longitude: query === 'Old Jaipur' ? 75.8237 : 75.826,
+            label:
+              query === 'Old Jaipur'
+                ? 'City Palace area, Jaipur, India'
+                : 'Johari Bazaar, Jaipur, India',
+          };
+    await route.fulfill({ json: { location } });
+  });
+  // Deterministic browser tests do not consume the public tile service.
+  await page.route('https://tile.openstreetmap.org/**', (route) =>
+    route.fulfill({
+      contentType: 'image/png',
+      body: Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jUxQAAAAASUVORK5CYII=',
+        'base64',
+      ),
+    }),
+  );
+  await page.goto('/');
+  await expect(page.getByRole('contentinfo')).toHaveCount(0);
+  await expect(
+    page.getByText('Your brief is sent to the AI service.', { exact: false }),
+  ).toHaveCount(0);
+  await expect(page.getByText('AI-generated suggestions.', { exact: false })).toHaveCount(0);
+  await page.getByLabel('Your trip').fill('Jaipur');
+  await page.getByRole('button', { name: 'Generate itinerary' }).click();
+  await expect(page.getByRole('button', { name: 'Show map' })).toBeVisible();
+  expect(locationQueries).toEqual([]);
+  await page.getByRole('button', { name: 'Show map' }).click();
+  await expect(page.getByRole('region', { name: 'Itinerary map' })).toBeVisible();
+  const zoomButton = await page.getByRole('button', { name: 'Zoom in', exact: true }).boundingBox();
+  expect(zoomButton!.width).toBeGreaterThanOrEqual(44);
+  expect(zoomButton!.height).toBeGreaterThanOrEqual(44);
+  await expect(page.getByRole('status').filter({ hasText: '3 stops located.' })).toBeVisible();
+  await expect(page.getByText('Could not locate: A garden walk.')).toBeVisible();
+  expect(locationQueries).toEqual(['Old Jaipur', 'Johari Bazaar', 'Jaipur']);
+  const colocatedPin = page.getByTitle('1.1 City Palace; 1.2 A local lunch', { exact: true });
+  await expect(colocatedPin).toHaveAccessibleName('1.1 City Palace; 1.2 A local lunch');
+  await colocatedPin.focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.leaflet-popup').getByText('1.1 · City Palace')).toBeVisible();
+  await expect(page.locator('.leaflet-popup').getByText('1.2 · A local lunch')).toBeVisible();
+  await page.getByRole('button', { name: 'Move A local lunch up' }).click();
+  await expect(
+    page.getByTitle('1.1 A local lunch; 1.2 City Palace', { exact: true }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Remove City Palace' }).click();
+  await expect(page.getByTitle('1.1 A local lunch', { exact: true })).toBeVisible();
+  await expect(page.getByRole('status').filter({ hasText: '2 stops located.' })).toBeVisible();
+  expect(locationQueries).toHaveLength(3);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.getByRole('button', { name: 'Hide map' }).click();
+  await expect(page.getByRole('region', { name: 'Itinerary map' })).toHaveCount(0);
+});
+
+test('map lookup failures can retry while the itinerary remains editable', async ({ page }) => {
+  let fail = true;
+  await page.route('**/api/itinerary', (route) =>
+    route.fulfill({ json: { itinerary: createItinerary() } }),
+  );
+  await page.route('**/api/location?*', (route) =>
+    route.fulfill(
+      fail
+        ? {
+            status: 503,
+            json: {
+              error: {
+                code: 'MAP_LOOKUP_FAILED',
+                message: 'Map locations could not be loaded. Try again.',
+              },
+            },
+          }
+        : { json: { location: null } },
+    ),
+  );
+  await page.goto('/');
+  await page.getByLabel('Your trip').fill('Jaipur');
+  await page.getByRole('button', { name: 'Generate itinerary' }).click();
+  await page.getByRole('button', { name: 'Show map' }).click();
+  await expect(page.getByRole('alert')).toContainText('Map locations could not be loaded');
+  await expect(page.getByRole('button', { name: 'Remove City Palace' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: 'Save trip', exact: true })).toBeEnabled();
+  fail = false;
+  await page.getByRole('button', { name: 'Retry map' }).click();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  await expect(page.getByText('No locations to display on the map.')).toBeVisible();
+});
+
 test('generate, edit, save, reload, and refine a trip', async ({ page }) => {
   const consoleErrors: string[] = [];
   page.on('pageerror', (error) => consoleErrors.push(error.message));

@@ -7,6 +7,7 @@ import { ResultBlocks } from './components/ResultBlocks.js';
 import { EmptyItinerary } from './components/EmptyItinerary.js';
 import { SavedTrips } from './components/SavedTrips.js';
 import { TripSummary } from './components/TripSummary.js';
+import { ItineraryMap } from './components/ItineraryMap.js';
 import type { SavedSession } from '../shared/itinerary.js';
 import { providerTimeoutMs } from '../shared/requestLimits.js';
 
@@ -241,9 +242,6 @@ export default function App() {
             onLoad={loadTrip}
             onReset={resetSavedTrips}
           />
-          <p className="mt-[26px] text-[11px] leading-[1.7] text-muted tablet:max-w-[30ch]">
-            Your brief is sent to the AI service. Saved trips stay on this device.
-          </p>
         </aside>
 
         <div
@@ -266,6 +264,7 @@ export default function App() {
                 onRemove={planner.removeStop}
                 onMove={planner.moveStop}
               />
+              <ItineraryMap itinerary={itinerary} />
               <form
                 className="mt-[34px] border-y border-line py-[22px]"
                 onSubmit={submitRefinement}
@@ -306,16 +305,8 @@ export default function App() {
           ) : (
             <EmptyItinerary busy={busy} />
           )}
-          <p className="mt-[26px] border-t border-line pt-[19px] text-[11px] leading-[1.65] text-muted">
-            AI-generated suggestions. Verify opening hours, travel times, and availability before
-            booking.
-          </p>
         </div>
       </main>
-      <footer className="flex items-center justify-between gap-4 border-t border-line py-[26px] text-[11px] text-muted">
-        <span>Wanderlux · Trip planner</span>
-        <span className="hidden phone:inline">Plan a little. Leave some room.</span>
-      </footer>
     </div>
   );
 }
