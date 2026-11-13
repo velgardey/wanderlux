@@ -1,6 +1,6 @@
 import { Clock3 } from 'lucide-react';
 import type { Itinerary } from '../../shared/itinerary.js';
-import { formatDuration } from '../lib/itinerary.js';
+import { formatDuration, getTotalDurationMinutes } from '../lib/itinerary.js';
 import { StopCard } from './StopCard.js';
 
 type ItineraryProps = {
@@ -29,7 +29,7 @@ export function ItineraryView({
   return (
     <div className="mt-[34px] space-y-8">
       {itinerary.days.map((day) => {
-        const activityMinutes = day.stops.reduce((total, stop) => total + stop.durationMinutes, 0);
+        const activityMinutes = getTotalDurationMinutes(day.stops);
         return (
           <section key={day.dayNumber} aria-labelledby={`day-heading-${day.dayNumber}`}>
             <div className="mb-[13px] flex flex-col items-start justify-between gap-2 phone:flex-row tablet:flex-col wide:flex-row wide:items-center wide:gap-4">

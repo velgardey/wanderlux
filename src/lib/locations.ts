@@ -9,10 +9,10 @@ export async function requestLocation(
     const response = await fetch(`/api/location?${parameters}`, {
       signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)]),
     });
-    if (!response.ok) throw new Error('Location request failed.');
+    if (!response.ok) throw new Error(`Location request failed (HTTP ${response.status}).`);
     return LocationResponseSchema.parse(await response.json()).location;
   } catch (error) {
     if (signal.aborted) throw error;
-    throw new Error('Map locations could not be loaded. Try again.');
+    throw new Error('Map locations could not be loaded. Try again.', { cause: error });
   }
 }

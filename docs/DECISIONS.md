@@ -1,6 +1,6 @@
 # Decisions and alternatives
 
-This file records the choices made while building. The assignment and the user's later directions control scope. Previous mockups and PRODUCT.md were excluded.
+This file records the choices made while building. The assignment and the user's later directions control scope. Previous mockups and PRODUCT.md were excluded, then deleted under the user's later cleanup authorization. Earlier choices below are history where a later entry supersedes them.
 
 ## 1. A small app in this folder
 
@@ -88,7 +88,7 @@ References: [Azure structured outputs](https://learn.microsoft.com/azure/foundry
 
 ## 19. Recommended scope first
 
-**Choice:** Finish core failure handling, saving, refinement, typed blocks, and bounded polish; leave streaming and drag-and-drop out. **Reason:** The assignment values a reliable core, and the user chose an eight-hour priority. **Considered:** incremental JSON previews, which need new framing/parsing/cancellation tests, and richer travel services such as maps/bookings, which are outside the brief. A recording and explanatory docs help the user understand and present what actually shipped.
+**Choice at initial delivery:** Finish core failure handling, saving, refinement, typed blocks, and bounded polish; leave streaming and drag-and-drop out. **Reason:** The assignment values a reliable core, and the user initially chose an eight-hour priority. **Considered:** incremental JSON previews, which need new framing/parsing/cancellation tests, and richer travel services such as maps/bookings. The user later authorized the map and lifted the working-time constraint. Streaming still needs a separate requested feature change; it is not needed for readability or cleanup.
 
 ## 20. A runtime floor that matches the locked tools
 
@@ -145,3 +145,19 @@ References: [Tailwind with Vite](https://tailwindcss.com/docs/installation/using
 **Choice:** Remove the service-disclosure paragraph, AI-generated suggestions paragraph and page footer. **Reason:** The user asked to simplify the website copy. **Considered:** replacing them with another generic disclaimer or adding marketing sections; neither helps the planner. Required OpenStreetMap/Photon attribution and the map's approximate-route explanation stay next to the map because they identify its data and practical limits.
 
 References: [React Leaflet setup](https://react-leaflet.js.org/docs/start-setup/), [Photon demo policy](https://github.com/komoot/photon#demo-server), [Nominatim policy](https://operations.osmfoundation.org/policies/nominatim/), [OpenStreetMap tile policy](https://operations.osmfoundation.org/policies/tiles/), and [Vite dependency optimization](https://vite.dev/config/dep-optimization-options).
+
+## 33. Preserve browser error causes with the platform
+
+**Choice:** Add native `Error.cause` in browser API, location and storage boundaries. Keep readable messages; retain HTTP status/public code for validated server errors. **Reason:** A debugger should distinguish denied storage, malformed JSON, invalid fields and network failures. **Considered:** raw exception logging, which can expose private data; a logging package or error class hierarchy, which adds concepts to three small boundaries. Receiving catch blocks can inspect the cause locally; screen state still stores only the safe message.
+
+## 34. Share the arithmetic, keep the views visible
+
+**Choice:** One pure `getTotalDurationMinutes(stops)` in the existing itinerary utility file, used by day, chart and summary views. **Reason:** Three copies can drift, and the summary's nested reductions made a simple total harder to read. `flatMap` supplies one stop array to the summary. Correct the chart caption because all stops, including breaks, count. **Considered:** a totals hook, stored aggregate state or memoization, which introduces synchronization or caching for at most 56 stops. The existing screen regression checks totals after a removal.
+
+## 35. Test the destructive branch without redesigning storage
+
+**Choice:** A screen regression for cancelling and confirming reset, keeping unrelated storage and the working trip. **Reason:** The existing implementation already deletes only its own key after confirmation, but that promise needs protection against future changes. **Considered:** a new persistence abstraction or broad mutation-testing tool; neither improves this specific check. Keep the saved schema and handlers where they already live.
+
+## 36. Delete verified waste and keep needed tooling
+
+**Choice:** Remove discarded mockups, old captures, superseded PRODUCT.md and generated build/test artifacts after checks. Keep the linked demo and all declared packages; default `pnpm prune` removes only extraneous installs. **Reason:** Reference searches found no application use for the obsolete files. Every runtime/dev package supports an active source, build, type, test or formatting job. **Considered:** pruning production-only dependencies, clearing shared pnpm stores or Git history, which would damage development tools or other work. Production output is recreated by `pnpm build`. No speculative framework or broad rewrite was introduced: request guards, trust-boundary validation and map recovery are necessary behavior, and the walkthrough explains them instead of hiding them.

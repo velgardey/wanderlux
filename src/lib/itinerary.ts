@@ -1,4 +1,8 @@
-import type { Itinerary } from '../../shared/itinerary.js';
+import type { Itinerary, Stop } from '../../shared/itinerary.js';
+
+export function getTotalDurationMinutes(stops: readonly Stop[]): number {
+  return stops.reduce((total, stop) => total + stop.durationMinutes, 0);
+}
 
 export function removeStop(itinerary: Itinerary, stopId: string): Itinerary {
   const days = itinerary.days.map((day) => {

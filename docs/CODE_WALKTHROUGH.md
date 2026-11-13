@@ -35,6 +35,8 @@ This function calls our server, never Azure directly. Native browser fetch is en
 
 The server may return a JSON error, but a proxy can return an HTML failure. That is why response parsing is guarded and why raw response bodies never become screen text. A successful HTTP status is not enough: the success envelope must pass the runtime schema before returning an itinerary.
 
+The readable Error message is for the screen; native `Error.cause` preserves the network, JSON or Zod exception for debugging. A valid server error keeps only its HTTP status and public code as cause metadata. `usePlanner` renders the message, so inspect the caught Error at its catch-block breakpoint to see the cause; it is not another UI state field or a raw error log.
+
 ## 4. The most important file: `src/hooks/usePlanner.ts`
 
 The hook owns the last valid itinerary, request status/error, committed prompt, expansion/checklist IDs, and saved-session ID. State is for values that render. Refs are for immediate request bookkeeping that should not wait for another render.
@@ -57,6 +59,8 @@ On failure, the previous itinerary stays in state and the failed request is save
 Refinement submits the current edited itinerary. It commits a full validated replacement only on success. Expansion and checklist state are retained for IDs that survive. New generation clears those presentation states and starts a new saved-session identity.
 
 ## 5. Local operations: `src/lib/itinerary.ts`
+
+`getTotalDurationMinutes` adds the duration of each supplied stop. `reduce` starts with zero and adds one stop at a time, so an empty day totals zero. The day view and chart pass that day's stops; the summary uses `flatMap` to put all days' stops in one array. All three views share the rule, including meal/rest stops. Travel between stops is not represented in this total.
 
 `removeStop` filters the requested ID out of each day's stop list and returns copied data. `moveStop` finds the stop and its day, checks the destination index, copies the list, swaps two items, and returns a copied itinerary.
 
@@ -103,7 +107,7 @@ The Lucide icon library supplies a consistent icon set rather than hand-maintain
 
 Local storage is an untrusted boundary because it can be corrupted or edited. Reading parses and validates the versioned array. Saving validates the session, updates an existing ID, and keeps at most five most recent saves.
 
-Invalid data is not silently deleted. The screen reports the error and offers an explicit reset, with confirmation, for this app's key only. Denied writes return a notice and leave the working itinerary intact.
+Invalid data is not silently deleted. The screen reports the error and offers an explicit reset, with confirmation, for this app's key only. Denied writes return a notice and leave the working itinerary intact. The screen regression checks both cancellation and confirmation, including preservation of unrelated browser storage and the working trip. Read/write/validation errors retain their original `cause`; their messages stay short.
 
 ## 10. How tests help you explain this
 
@@ -140,7 +144,7 @@ To restyle: edit a utility in the component for a local change; edit a shared co
 ## 12. Debug a failure or a deliberately introduced bug
 
 1. Reproduce one action and note the browser's error. Check the API terminal's diagnostic entry for the same operation. `CONNECTION_FAILED` points to transport, `PROVIDER_FAILED` plus an HTTP status points to provider configuration/service behavior, and `INVALID_OUTPUT` plus a Zod field path points to the data contract.
-2. Open the file for that boundary. Provider requests/configuration are in `server/generateItinerary.ts`; HTTP cancellation/error serialization are in `server/index.ts`; browser parsing is in `src/lib/api.ts`; state races and retry are in `src/hooks/usePlanner.ts`; local edits and persistence are in `src/lib`. Put a debugger breakpoint in the catch block if you need to inspect the retained `cause` locally.
+2. Open the file for that boundary. Provider requests/configuration are in `server/generateItinerary.ts`; HTTP cancellation/error serialization are in `server/index.ts`; browser parsing is in `src/lib/api.ts`; state races and retry are in `src/hooks/usePlanner.ts`; local edits and persistence are in `src/lib`. Put a debugger breakpoint in the receiving catch block to inspect the retained `cause` locally. `SyntaxError` means JSON parsing, `ZodError` means a contract mismatch, and `SecurityError` means browser storage access was denied. Keep private payloads and exception objects out of shared logs/screenshots.
 3. Run the matching test file from `C:\Projects\wanderlux`, for example `pnpm exec vitest run tests/generateItinerary.test.ts` or `pnpm exec vitest run tests/server.test.ts`. If the bug still exists while those tests pass, add a small regression for its exact trigger before fixing it.
 4. Fix the common cause in one place, then run `pnpm test` and `pnpm build`. For a screen or keyboard change, also run `pnpm test:e2e`. A deliberate mutation should be temporary: prove the test fails, restore the working code, and prove it passes again.
 

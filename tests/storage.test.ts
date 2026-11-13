@@ -19,6 +19,20 @@ function session(id = 'session-1'): SavedSession {
 beforeEach(() => localStorage.clear());
 afterEach(() => vi.restoreAllMocks());
 describe('local saved sessions', () => {
+  it('keeps denied-storage details behind the readable error', () => {
+    const original = new DOMException('PRIVATE_STORAGE_DETAILS', 'SecurityError');
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw original;
+    });
+    let failure: Error | undefined;
+    try {
+      readSessions();
+    } catch (error) {
+      failure = error as Error;
+    }
+    expect(failure?.cause).toBe(original);
+    expect(failure?.message).toBe('Saved trips could not be read.');
+  });
   it('starts with no saved sessions', () => {
     expect(readSessions()).toEqual([]);
   });

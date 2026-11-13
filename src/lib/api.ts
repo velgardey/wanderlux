@@ -22,17 +22,27 @@ export async function requestItinerary(
     });
   } catch (error) {
     if (signal.aborted) throw error;
-    if (timeoutSignal.aborted) throw new Error('This is taking too long. Try again.');
-    throw new Error('Could not reach the server. Check your connection and try again.');
+    if (timeoutSignal.aborted)
+      throw new Error('This is taking too long. Try again.', { cause: error });
+    throw new Error('Could not reach the server. Check your connection and try again.', {
+      cause: error,
+    });
   }
 
   // Proxies sometimes return HTML rather than our JSON error envelope.
-  let payload: unknown = null;
+  let payload: unknown;
   try {
     payload = await response.json();
-  } catch {
-    if (signal.aborted) throw new Error('Request cancelled.');
-    if (timeoutSignal.aborted) throw new Error('This is taking too long. Try again.');
+  } catch (error) {
+    if (signal.aborted) throw new Error('Request cancelled.', { cause: error });
+    if (timeoutSignal.aborted)
+      throw new Error('This is taking too long. Try again.', { cause: error });
+    throw new Error(
+      response.ok
+        ? 'The server returned an itinerary we could not use.'
+        : 'The request failed. Please try again.',
+      { cause: error },
+    );
   }
 
   if (!response.ok) {
@@ -40,10 +50,17 @@ export async function requestItinerary(
     const message = checkedError.success
       ? checkedError.data.error.message
       : 'The request failed. Please try again.';
-    throw new Error(message);
+    throw new Error(message, {
+      cause: {
+        status: response.status,
+        code: checkedError.success ? checkedError.data.error.code : 'INVALID_ERROR_RESPONSE',
+      },
+    });
   }
   const checkedResponse = SuccessResponseSchema.safeParse(payload);
   if (!checkedResponse.success)
-    throw new Error('The server returned an itinerary we could not use.');
+    throw new Error('The server returned an itinerary we could not use.', {
+      cause: checkedResponse.error,
+    });
   return checkedResponse.data.itinerary;
 }

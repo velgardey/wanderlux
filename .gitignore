@@ -6,6 +6,5 @@ dist/
 playwright-report/
 test-results/
 .superpowers/
-# Earlier reference material is preserved locally, outside this implementation.
-/output/mockups/
-/PRODUCT.md
+# Verification captures are temporary; keep the linked demo recording.
+/output/screenshots/

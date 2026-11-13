@@ -59,7 +59,7 @@ Location names should include the place, city and country. Pins are approximate 
 
 ## Learn the code
 
-Start with [the walkthrough](docs/CODE_WALKTHROUGH.md), then [decisions and alternatives](docs/DECISIONS.md). Both explain why code exists and where to extend it.
+Start with [the walkthrough](docs/CODE_WALKTHROUGH.md), then [decisions and alternatives](docs/DECISIONS.md). Both explain why code exists and where to extend it. The [whole-repository Ponytail audit](docs/PONYTAIL_AUDIT.md) records concrete findings, fixes and limits.
 
 The flow is:
 
@@ -75,6 +75,30 @@ The OpenAI SDK formats and sends the structured-output request, extracts/parses 
 
 `SavedTrips` and `TripSummary` keep those screen sections in focused files; `App` coordinates their callbacks. Server failures retain their original cause and produce sanitized terminal diagnostics, while browser errors remain short and safe. The walkthrough includes a step-by-step debugging procedure.
 
+### Why these dependencies exist
+
+All eight runtime and nineteen development dependencies have an active role. Development dependencies are needed to build, check or test the project; removing them would break those commands. No package was added for this audit.
+
+| Packages                                                                              | Job                                                               |
+| ------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `react`, `react-dom`                                                                  | Components, state and browser rendering                           |
+| `express`                                                                             | Local API routes and production static files                      |
+| `openai`                                                                              | Official Azure Responses client and structured-output parsing     |
+| `zod`                                                                                 | Validate requests, results, saved trips and map coordinates       |
+| `leaflet`, `react-leaflet`                                                            | Map controls and React integration                                |
+| `lucide-react`                                                                        | Shared button icons                                               |
+| `vite`, `@vitejs/plugin-react`                                                        | Development server, JSX support and client build                  |
+| `tailwindcss`, `@tailwindcss/vite`                                                    | Styling and its Vite integration                                  |
+| `typescript`, `tsx`                                                                   | Type checking/server compilation and direct development execution |
+| `concurrently`                                                                        | Start API and client together                                     |
+| `vitest`, `jsdom`, `@testing-library/react`                                           | Logic and React tests in a browser-like environment               |
+| `supertest`, `@types/supertest`                                                       | HTTP route tests and their TypeScript definitions                 |
+| `@playwright/test`                                                                    | Reproducible desktop/mobile Chrome tests                          |
+| `prettier`                                                                            | Consistent code formatting                                        |
+| `@types/node`, `@types/express`, `@types/react`, `@types/react-dom`, `@types/leaflet` | Types for the corresponding runtimes/libraries                    |
+
+Native `fetch`, `URLSearchParams`, `AbortController`, `Map`, `Set` and `Error.cause` cover the remaining needs. A second HTTP client, state manager or logging package would add concepts without simplifying a current task.
+
 ## Reliability and tests
 
 ```powershell
@@ -89,6 +113,8 @@ Browser tests use installed Chrome through Playwright Test, with desktop and 390
 The tests cover malformed/wrong-shaped/empty output, duplicate IDs, edited empty days, invalid requests, rate limits, corrupted/denied storage, API errors, out-of-order promises, cancellation, obsolete retries, save/reload, refinements, keyboard entry, and mobile overflow. Live smoke tests are separate and consume provider quota.
 
 Focused regressions also cover SDK connection-error classification, complete endpoint validation, safe diagnostic logging, and provider cancellation after a real local HTTP disconnect. The disconnect test was checked against a deliberately reversed condition and detected the bug; normal-completion cancellation is checked separately.
+
+Audit regressions retain original browser error causes behind safe messages and verify that cancelling saved-trip reset preserves data. Confirming reset removes only this app's key and preserves the working trip and unrelated browser storage. Summary, day and chart totals share one duration helper.
 
 Map tests cover GeoJSON coordinate order/ranges, cached misses, serialized lookups, cancellation/stale results, retry, development-mode effect checks, grouped pins, editing, long scrollable popups at 320px, and failed map-file downloads. Browser tests mock map lookup/tile responses so they do not consume public-service capacity; live map checks are separate.
 
@@ -112,11 +138,11 @@ Codex helped analyze the supplied assignment, propose this plan, research the of
 
 ## Assignment and submission
 
-The mandatory trip-planning interactions and reliability requirements are implemented. Recommended extras included: saving, refinement, distinct blocks, and bounded polish. The source assignment's streaming goal remains deferred under the agreed eight-hour priority.
+The mandatory trip-planning interactions and reliability requirements are implemented. Recommended extras included: saving, refinement, distinct blocks, and bounded polish. Streaming remains deferred because it needs a separate partial-response protocol and validation; lifting the working-time constraint does not add it to this readability/cleanup task.
 
 Before submitting, share a public repo or grant private access, attach a short screen recording, and state your **actual** time spent. Do not submit someone else's repository or claim that all AI suggestions are verified.
 
-Build progress and verification evidence are recorded in [the build log](docs/BUILD_LOG.md). Session time is not equivalent to the human author's independent work time; record your own actual time and stop at eight hours. No fabricated exact duration is provided.
+Build progress and verification evidence are recorded in [the build log](docs/BUILD_LOG.md). The original assignment specifies eight hours; on 14 November 2026 the user lifted that constraint for this ongoing project work. Report actual time and this distinction honestly if submitting. Session time is not equivalent to the human author's independent work time.
 
 **Observed assisted build time:** approximately 45 minutes between the first schema test at 19:08 and final build checks around 19:53 IST on 13 November 2026, plus initial setup and the earlier planning turn. This is an elapsed tooling interval including automated waits, not a manual timesheet.
 

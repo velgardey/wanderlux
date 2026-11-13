@@ -10,23 +10,24 @@ export function readSessions(): SavedSession[] {
     const storedText = localStorage.getItem(sessionsStorageKey);
     if (!storedText) return [];
     const checkedSessions = SavedSessionsSchema.safeParse(JSON.parse(storedText));
-    if (!checkedSessions.success) throw new Error('Invalid saved data.');
+    if (!checkedSessions.success) throw checkedSessions.error;
     return checkedSessions.data;
-  } catch {
+  } catch (error) {
     // Do not silently delete corrupted data: the user may want to recover it.
-    throw new Error('Saved trips could not be read.');
+    throw new Error('Saved trips could not be read.', { cause: error });
   }
 }
 export function saveSession(session: SavedSession): SavedSession[] {
   const checkedSession = SavedSessionSchema.safeParse(session);
-  if (!checkedSession.success) throw new Error('This trip could not be saved.');
+  if (!checkedSession.success)
+    throw new Error('This trip could not be saved.', { cause: checkedSession.error });
   const previousSessions = readSessions();
   const otherSessions = previousSessions.filter((saved) => saved.id !== session.id);
   const nextSessions = [checkedSession.data, ...otherSessions].slice(0, 5);
   try {
     localStorage.setItem(sessionsStorageKey, JSON.stringify(nextSessions));
     return nextSessions;
-  } catch {
-    throw new Error('Your browser could not save this trip.');
+  } catch (error) {
+    throw new Error('Your browser could not save this trip.', { cause: error });
   }
 }

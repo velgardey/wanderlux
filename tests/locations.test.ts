@@ -4,6 +4,25 @@ import { requestLocation } from '../src/lib/locations.js';
 afterEach(() => vi.unstubAllGlobals());
 
 describe('browser map boundary', () => {
+  it('keeps a coordinate-validation cause behind the safe map message', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(
+            JSON.stringify({ location: { latitude: 200, longitude: 0, label: 'Invalid' } }),
+          ),
+        ),
+    );
+    const failure = await requestLocation('Invalid', new AbortController().signal).catch(
+      (error) => error,
+    );
+    expect(failure).toMatchObject({
+      message: 'Map locations could not be loaded. Try again.',
+      cause: { name: 'ZodError' },
+    });
+  });
   it('encodes the query and validates coordinates', async () => {
     const location = { latitude: 26.92, longitude: 75.82, label: 'Jaipur, India' };
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ location })));

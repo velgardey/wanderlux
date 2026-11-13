@@ -1,7 +1,6 @@
 node_modules/
 dist/
 output/
-PRODUCT.md
 pnpm-lock.yaml
 test-results/
 playwright-report/

@@ -1,6 +1,6 @@
 import { Bookmark, Check } from 'lucide-react';
 import type { Itinerary } from '../../shared/itinerary.js';
-import { formatDuration } from '../lib/itinerary.js';
+import { formatDuration, getTotalDurationMinutes } from '../lib/itinerary.js';
 
 type TripSummaryProps = {
   itinerary: Itinerary;
@@ -10,11 +10,9 @@ type TripSummaryProps = {
 };
 
 export function TripSummary({ itinerary, busy, saveNotice, onSave }: TripSummaryProps) {
-  const stopCount = itinerary.days.reduce((total, day) => total + day.stops.length, 0);
-  const activityMinutes = itinerary.days.reduce(
-    (total, day) => total + day.stops.reduce((minutes, stop) => minutes + stop.durationMinutes, 0),
-    0,
-  );
+  const stops = itinerary.days.flatMap((day) => day.stops);
+  const stopCount = stops.length;
+  const activityMinutes = getTotalDurationMinutes(stops);
 
   return (
     <div>

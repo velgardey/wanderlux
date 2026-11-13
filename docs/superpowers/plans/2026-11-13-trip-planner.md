@@ -1,5 +1,7 @@
 # Basic Trip Planner Implementation Plan
 
+**Historical plan:** Use README.md and docs/CODE_WALKTHROUGH.md for today's implementation. On 14 November 2026 the user lifted the working-time constraint. The Gemini, older deadlines and stop-at-eight-hours instructions below describe the initial proposal, not current work.
+
 > **For agentic workers:** Use `superpowers:executing-plans` to implement this plan task by task. Checkboxes track progress. This deliverable is a plan; it does not authorize implementation, installation, publishing, or deletion of existing material.
 
 **Later implementation update:** The user subsequently authorized building this plan and selected Azure GPT 6 Luna through the Responses API instead of Gemini. The local implementation and recommended extras are complete; see `docs/BUILD_LOG.md`, `docs/DECISIONS.md`, and `README.md` for actual code, verification, and deferred scope. The original estimates and provider proposal below are preserved as planning history.

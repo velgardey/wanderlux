@@ -1,6 +1,6 @@
 import { Check, Lightbulb } from 'lucide-react';
 import type { Itinerary } from '../../shared/itinerary.js';
-import { formatDuration } from '../lib/itinerary.js';
+import { formatDuration, getTotalDurationMinutes } from '../lib/itinerary.js';
 
 type ResultBlocksProps = {
   itinerary: Itinerary;
@@ -11,7 +11,7 @@ type ResultBlocksProps = {
 export function ResultBlocks({ itinerary, checkedItemIds, onToggleItem }: ResultBlocksProps) {
   const dayTotals = itinerary.days.map((day) => ({
     dayNumber: day.dayNumber,
-    minutes: day.stops.reduce((total, stop) => total + stop.durationMinutes, 0),
+    minutes: getTotalDurationMinutes(day.stops),
   }));
   const largestTotal = Math.max(1, ...dayTotals.map((day) => day.minutes));
 
@@ -70,7 +70,7 @@ export function ResultBlocks({ itinerary, checkedItemIds, onToggleItem }: Result
           <section key={block.id}>
             <h3 className="text-[15px] font-semibold">{block.title}</h3>
             <p className="small-copy mt-1.5">
-              Activity time only; travel and breaks are not included.
+              Includes all planned stops; travel between stops is not included.
             </p>
             <div className="mt-4 grid gap-3">
               {dayTotals.map((day) => (

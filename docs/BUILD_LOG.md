@@ -9,7 +9,7 @@ The user approved implementation and requested readable, explicit code and expla
 - Tasks 1-4 complete: setup, shared validation, Azure integration, interactive UI, and request/error protection.
 - Tasks 5-8 complete: five-session persistence, refinement, typed blocks, responsive layout, keyboard operation, and themes.
 - Task 9 complete locally: README, code walkthrough, decisions, short recording, locked install/build/start checks, and review. Public repository publication and deployment remain outside this authorized local build.
-- Unit/component/HTTP tests: **84 passed** after the map and readability regressions. Browser tests: **16 passed**, desktop and mobile with installed Chrome. TypeScript and production build pass.
+- Unit/component/HTTP tests: **90 passed** after the full repository audit fixes. Browser tests: **16 passed**, desktop and mobile with installed Chrome. TypeScript and production build pass.
 - Provider: the supplied Azure v1 endpoint and `gpt-6-luna` were used for multiple real generations and refinements. Structured cards/checklists/chart blocks rendered successfully; one refinement preserved current stop IDs and a checked packing item.
 - Production: static client, API health, and safe invalid-request handling checked on the built server. Client assets scanned for the actual environment key; it was absent. `.env` is ignored and untracked.
 - Visual verification: desktop, 390px, and 320px captures inspected; mobile spacing and final-stop focus behavior checked.
@@ -59,7 +59,15 @@ Independent review identified large grouped popups clipping content and an uncau
 
 Final map verification: **84 unit/component/API tests and 16 Chrome browser tests passed**, typecheck/build passed. Live Photon lookup returned City Palace coordinates in Jaipur through the running app. Real tiles and two real place matches were visually inspected on desktop dark and 320px light; page width equaled 320px with no overflow. Browser tests cover editing/grouping, missing/retry, long popups, keyboard labels and failed-download recovery without public-service requests. Task-owned browser and temporary visual captures were cleaned up. Driving directions, hosted deployment and public-scale caching remain outside the map feature.
 
-On 14 November 2026, the user lifted the eight-hour working priority and requested a full readability/Ponytail audit plus removal of redundant assets, dependencies and temporary files. That follow-up is tracked separately.
+## Follow-up: whole-repository readability audit and cleanup
+
+On 14 November 2026, the user lifted the eight-hour working priority and requested a full readability/Ponytail audit plus removal of redundant assets, dependencies and temporary files. All application modules, shared contracts, tests, configuration and declared dependency uses were reviewed for the documented local load. The standalone [Ponytail report](PONYTAIL_AUDIT.md) records five concrete findings; authorized implementation followed that report.
+
+Browser API/map/storage errors now retain native causes with unchanged safe UI messages. Validated HTTP errors retain status/public code. Five cause regressions failed with the earlier behavior and passed with the fixes. A reset regression protects cancellation, unrelated storage and the working trip. The day, chart and summary share one pure duration helper; the chart caption now correctly includes breaks and excludes travel between stops. No extra dependency, state layer or saved-format migration was needed.
+
+Removed 20 obsolete asset/document files (31,347,214 bytes) and 13 generated build/test files after verification (559,618 bytes): **30.4 MiB of logical file contents** total. Recursive forced deletion was rejected by automatic review as blocked by policy; bounded file-by-file PowerShell deletion and removal of empty directories succeeded. The linked recording, favicon, credentials, source, tests and Git history remain. `pnpm prune` found no extraneous installs; all 27 declared packages have a documented role and the advisory audit reported no known vulnerabilities. The shared package store was not altered.
+
+Final verification after code changes: **90 unit/component/API tests and 16 Chrome desktop/mobile tests passed**; typecheck and client/server build passed. Playwright closed its task-owned browsers. Generated `dist` and `test-results` were removed afterwards; `pnpm build` recreates production output. No new live paid provider call, interactive visual inspection, public-load test or clean-machine installation was performed. Earlier live Azure/Photon evidence is recorded above. The walkthrough and decisions explain the current code, and the original plan is marked historical.
 
 ## Original pre-flight decisions
 
@@ -71,4 +79,4 @@ On 14 November 2026, the user lifted the eight-hour working priority and request
 
 ## Time ledger
 
-First schema test: 19:08 IST, 13 November 2026. Final build checks: approximately 19:53 IST. This gives roughly 45 minutes of observed implementation/testing interval, including automated waits, plus untimed initial setup and the earlier planning turn. The human author should track their own actual work separately; the eight-hour cap remains in force.
+First schema test: 19:08 IST, 13 November 2026. Initial build checks: approximately 19:53 IST. This gives roughly 45 minutes of observed implementation/testing interval, including automated waits, plus untimed initial setup and the earlier planning turn. It excludes later follow-ups. The human author should track their own actual work separately; on 14 November the user lifted the cap for ongoing project work, while the original assignment's submission guidance remains historical context.
