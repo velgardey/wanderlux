@@ -9,9 +9,7 @@ export function readSessions(): SavedSession[] {
   try {
     const storedText = localStorage.getItem(sessionsStorageKey);
     if (!storedText) return [];
-    const checkedSessions = SavedSessionsSchema.safeParse(JSON.parse(storedText));
-    if (!checkedSessions.success) throw checkedSessions.error;
-    return checkedSessions.data;
+    return SavedSessionsSchema.parse(JSON.parse(storedText));
   } catch (error) {
     // Do not silently delete corrupted data: the user may want to recover it.
     throw new Error('Saved trips could not be read.', { cause: error });

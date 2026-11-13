@@ -69,3 +69,11 @@ Final checks after the code fixes: **90 unit/component/API tests passed**, **16 
 The walkthrough documents every application module, the shared helper, error causes, debugging steps and small extension paths. Decisions 33–36 record choices and alternatives. The initial plan is clearly marked historical, including its superseded provider, deadlines and time constraint.
 
 Verdict after fixes: Healthy for the documented local use. No broad rewrite or extra framework is needed. A readable codebase cannot guarantee that every future bug is automatically detected; this report records concrete checks rather than claiming that guarantee.
+
+## Final readability checkpoint — 15 November 2026
+
+The final pass found three small places to make existing work easier to follow: collect unique map queries with loops, collect resolved plotted stops with loops, and let Zod's `parse` throw into the existing saved-data error boundary. The arrow SVG template is now split across readable lines. No new dependency, abstraction, state owner or saved-data format was introduced. Decision 39 and the walkthrough explain the changes.
+
+The retained request counters, cancellation checks, generated/edited schema distinction, bounded lookup queue, caches and map import recovery each protect a concrete feature or failure case. Removing them would make the source shorter while allowing stale results, rejecting valid edits or losing the working screen after a download failure. They remain in the files that own those responsibilities.
+
+Fresh checks passed: **90 unit/component/API tests**, **16 desktop/mobile Chrome tests**, typecheck, client/server production build, formatting and whitespace checks. The dependency audit reported **no known vulnerabilities**. No further dependency removal or architecture rewrite was justified. Live provider calls, public load, clean-machine installation and real-world place/travel accuracy were not rechecked.

@@ -37,7 +37,10 @@ function RoutePath({ from, to, color }: { from: MapLocation; to: MapLocation; co
   const angle = (Math.atan2(start.y - end.y, end.x - start.x) * 180) / Math.PI;
   const arrowIcon = divIcon({
     className: 'trip-map-arrow',
-    html: `<svg viewBox="0 0 24 24" style="transform:rotate(${angle}deg)" aria-hidden="true"><path d="M6 5L13 12L6 19" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /></svg>`,
+    html: `<svg viewBox="0 0 24 24" style="transform:rotate(${angle}deg)" aria-hidden="true">
+      <path d="M6 5L13 12L6 19" fill="none" stroke="${color}" stroke-width="3"
+        stroke-linecap="round" stroke-linejoin="round" />
+    </svg>`,
     iconSize: [24, 24],
     iconAnchor: [12, 12],
   });
@@ -67,25 +70,23 @@ export default function MapView({ itinerary }: { itinerary: Itinerary }) {
   const { locations, loading, error, retry } = useMapLocations(itinerary);
   const [tilesFailed, setTilesFailed] = useState(false);
   const [tileAttempt, setTileAttempt] = useState(0);
-  const plottedStops = useMemo(
-    () =>
-      itinerary.days.flatMap((day) =>
-        day.stops.flatMap((stop, index) => {
-          const location = locations.get(stop.location);
-          return location
-            ? [
-                {
-                  stop,
-                  location,
-                  number: `${day.dayNumber}.${index + 1}`,
-                  color: dayColors[day.dayNumber - 1],
-                },
-              ]
-            : [];
-        }),
-      ),
-    [itinerary, locations],
-  );
+  const plottedStops = useMemo(() => {
+    const resolvedStops: PlottedStop[] = [];
+    for (const day of itinerary.days) {
+      for (let stopIndex = 0; stopIndex < day.stops.length; stopIndex += 1) {
+        const stop = day.stops[stopIndex];
+        const location = locations.get(stop.location);
+        if (!location) continue;
+        resolvedStops.push({
+          stop,
+          location,
+          number: `${day.dayNumber}.${stopIndex + 1}`,
+          color: dayColors[day.dayNumber - 1],
+        });
+      }
+    }
+    return resolvedStops;
+  }, [itinerary, locations]);
 
   // Area-level matches can coincide: one pin lists every stop at that point.
   const groups = new Map<string, PlottedStop[]>();

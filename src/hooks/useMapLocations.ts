@@ -4,10 +4,15 @@ import type { MapLocation } from '../../shared/map.js';
 import { requestLocation } from '../lib/locations.js';
 
 export function useMapLocations(itinerary: Itinerary) {
-  const queries = useMemo(
-    () => [...new Set(itinerary.days.flatMap((day) => day.stops.map((stop) => stop.location)))],
-    [itinerary],
-  );
+  const queries = useMemo(() => {
+    const uniqueLocations = new Set<string>();
+    for (const day of itinerary.days) {
+      for (const stop of day.stops) {
+        uniqueLocations.add(stop.location);
+      }
+    }
+    return [...uniqueLocations];
+  }, [itinerary]);
   const cache = useRef(new Map<string, MapLocation | null>());
   const [locations, setLocations] = useState(new Map<string, MapLocation | null>());
   const [loading, setLoading] = useState(true);

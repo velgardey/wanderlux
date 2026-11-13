@@ -77,6 +77,14 @@ The expanded browser regression initially failed on the old credit line, then pa
 
 Verification: **90 unit/component/API tests and 16 desktop/mobile Chrome tests passed**; typecheck and client/server production build passed. Agent Browser inspected deterministic trip/location fixtures over real OpenStreetMap tiles on desktop dark and 320px light; no horizontal overflow. Its task-owned session was closed. Temporary screenshots and generated build/test output were removed afterwards. The provider and real place lookup were not called again for this presentation-only change.
 
+## Final readability check — 15 November 2026
+
+Reviewed the application boundaries, request guards, saved-data handling, map calculations, dependencies and learning documentation. Replaced the dense unique-location expression and nested plotted-stop `flatMap` callbacks with ordinary loops. Kept those calculations memoized to avoid restarting lookups or resetting map zoom on unrelated renders. Expanded the arrow SVG template for readable attributes. Saved-trip reading now uses Zod's `parse` directly inside its existing error boundary, removing a redundant success check and manual throw. No schema, feature, caller, fixture, configuration or dependency changes were needed.
+
+The walkthrough explains the revised steps and memoization; decision 39 records the alternatives. Existing tests cover validation, denied/corrupted storage, lookup order/deduplication, cancellation, retries, grouped pins, edits, arrows and wheel zoom. No additional test duplicates those existing cases.
+
+Fresh verification: **90 unit/component/API tests and 16 desktop/mobile Chrome tests passed**. Typecheck, client/server production build, formatting and whitespace checks passed. `pnpm audit` found **no known vulnerabilities**. Browser tests used deterministic API/map fixtures. Live paid Azure calls, public-service availability, public load and factual travel accuracy were not rechecked. No further structural rewrite or package removal is justified for the documented local use.
+
 ## Original pre-flight decisions
 
 - Generated versus edited schema: use the same fields with different stop-count minimums.

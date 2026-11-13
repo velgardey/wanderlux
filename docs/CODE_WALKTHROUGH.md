@@ -107,6 +107,12 @@ The Lucide icon library supplies a consistent icon set rather than hand-maintain
 
 Local storage is an untrusted boundary because it can be corrupted or edited. Reading parses and validates the versioned array. Saving validates the session, updates an existing ID, and keeps at most five most recent saves.
 
+```ts
+return SavedSessionsSchema.parse(JSON.parse(storedText));
+```
+
+`JSON.parse` converts stored text to a value. Zod's `parse` checks that value and returns validated sessions or throws. The surrounding `try/catch` gives either failure the same readable message while retaining its cause. There is no separate success branch to maintain.
+
 Invalid data is not silently deleted. The screen reports the error and offers an explicit reset, with confirmation, for this app's key only. Denied writes return a notice and leave the working itinerary intact. The screen regression checks both cancellation and confirmation, including preservation of unrelated browser storage and the working trip. Read/write/validation errors retain their original `cause`; their messages stay short.
 
 ## 10. How tests help you explain this
@@ -156,6 +162,8 @@ Read `ItineraryMap.tsx`, `MapView.tsx`, `useMapLocations.ts`, `src/lib/locations
 
 `MapView` derives pins, stop numbers and straight segments from the current itinerary plus a map of resolved locations. It never owns or edits itinerary data. Stops at identical coordinates share one pin, with all their entries in its popup. A `+` after the first number indicates a group. Number `2.3` means day two, stop three. Popups have bounded width/height and scroll for large groups. Missing locations interrupt connecting segments; the app does not draw a line skipping an unresolved adjacent stop.
 
+The plotted-stop calculation uses two ordinary loops: one over days, then one over stops. It looks up each stop's location, skips unresolved/missing matches with `continue`, and pushes a record with the original stop, resolved coordinates, visit number and day color. The stop index comes from the original day, so an unresolved stop does not renumber later pins. `useMemo` retains this array until the itinerary or locations change; this prevents unrelated renders from triggering `FitMap` and resetting a user's zoom.
+
 `RoutePath` in that file renders one dashed line and its direction arrow using existing Leaflet components. Leaflet's `CRS.EPSG3857.project` converts both locations into the coordinates used by the map's Web Mercator projection. The midpoint is their average; `unproject` converts it back for the arrow marker. `Math.atan2` calculates the direction from the first point to the second. Its vertical difference is inverted because screen coordinates increase downward while projected north increases upward. The SVG chevron points right before rotation. Projected identical points render neither a line nor an arrow. Arrows are decorative, cannot receive keyboard focus, and sit in the overlay pane beneath location pins; only pins open popups.
 
 The teardrop is CSS on the existing `divIcon`: three rounded corners and one pointed corner, rotated -45 degrees. Its inner number rotates back 45 degrees to stay upright. The 44×52px marker area preserves touch access, `iconAnchor` places the tip at the actual location, and `popupAnchor` opens details above the pin. `FitMap` gives the top extra padding for the taller shape. Native `scrollWheelZoom` enables mouse/trackpad zoom; no custom wheel listener or extra plugin is needed. Zoom buttons and keyboard controls remain available.
@@ -165,6 +173,18 @@ Leaflet's map instance comes from `useMap`. `FitMap` calls `fitBounds` when reso
 The marker's add event assigns `aria-label` to the created div icon. Otherwise a screen reader sees only its visible number, even when the title contains the stop name. Zoom controls use a more specific selector because Leaflet's later-loaded touch stylesheet otherwise restores smaller buttons; the browser tests verify 44px targets.
 
 `useMapLocations` deduplicates location strings with a native Set, then requests them sequentially. A Map ref keeps successful/no-match results between edits; a copied Map in state triggers rendering as each lookup finishes. Failures can retry without repeating successful lookups. Cleanup aborts the current request, and the post-await abort check ignores late responses from a previous trip. A microtask lets React's development effect setup/cleanup check finish before starting network work, avoiding a duplicate first query. Vite pre-bundles the two lazy libraries so first opening the map cannot reload the development page.
+
+```ts
+const uniqueLocations = new Set<string>();
+for (const day of itinerary.days) {
+  for (const stop of day.stops) {
+    uniqueLocations.add(stop.location);
+  }
+}
+return [...uniqueLocations];
+```
+
+Adding the same name twice leaves one Set entry. Spreading the Set into an array preserves the order of first visits, which is the lookup order. This code runs inside `useMemo` with `[itinerary]`, so state updates from individual results do not restart the lookup effect.
 
 `requestLocation` sends a safely encoded location query to our own Express route, with a 15-second browser deadline. The route validates the 200-character query and cancels disconnected lookups. `geocodeLocation` uses the existing Zod and PlannerError plus native fetch/AbortSignal and Node's cancellable timer; a custom geocoding SDK is unnecessary for one endpoint. Photon returns GeoJSON longitude first; the server validates the numeric bounds, then returns named latitude/longitude fields. The original saved itinerary schema stays unchanged, so older sessions still work.
 
