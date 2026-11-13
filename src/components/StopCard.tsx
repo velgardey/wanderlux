@@ -27,42 +27,53 @@ export function StopCard({
   // DOM IDs come from React, not untrusted model text.
   const detailsId = useId();
   return (
-    <li className={`stop-row ${expanded ? 'is-expanded' : ''}`}>
-      <div className="stop-topline">
+    <li className="border-b border-line pt-3 pb-1.5 first:border-t">
+      <div className="flex items-center gap-[9px] phone:gap-[18px]">
         <button
-          className="stop-toggle"
+          className="flex min-w-0 flex-1 items-center gap-[9px] rounded-md border-0 bg-transparent py-[7px] text-left phone:gap-3"
           onClick={onToggle}
           aria-expanded={expanded}
           aria-controls={detailsId}
           aria-label={`${expanded ? 'Collapse' : 'Expand'} ${stop.title}`}
         >
-          <span className="stop-number" aria-hidden="true">
+          <span
+            className="grid size-6 shrink-0 place-items-center rounded-full border border-line text-[11px] text-muted phone:size-7"
+            aria-hidden="true"
+          >
             {index + 1}
           </span>
-          <span className="stop-heading">
-            <span className="stop-title">{stop.title}</span>
-            <span className="stop-location">
+          <span className="flex min-w-0 flex-col gap-1.5">
+            <span
+              className="text-sm leading-[1.4] font-semibold wrap-anywhere"
+              data-testid="stop-title"
+            >
+              {stop.title}
+            </span>
+            <span className="flex items-center gap-1 text-[10px] leading-[1.4] text-muted wrap-anywhere phone:text-[11px]">
               <MapPin size={13} aria-hidden="true" />
               {stop.location}
             </span>
           </span>
           {expanded ? (
-            <ChevronUp size={18} aria-hidden="true" />
+            <ChevronUp className="ml-auto text-muted" size={18} aria-hidden="true" />
           ) : (
-            <ChevronDown size={18} aria-hidden="true" />
+            <ChevronDown className="ml-auto text-muted" size={18} aria-hidden="true" />
           )}
         </button>
-        <span className="duration">
+        <span className="flex items-center gap-[5px] text-[10px] whitespace-nowrap text-muted tabular-nums phone:text-[11px]">
           <Clock3 size={14} aria-hidden="true" />
           {formatDuration(stop.durationMinutes)}
         </span>
       </div>
       {expanded ? (
-        <div className="stop-details" id={detailsId}>
+        <div
+          className="pt-3 pb-[9px] pl-[33px] text-[13px] leading-[1.7] text-muted wrap-anywhere phone:pl-10"
+          id={detailsId}
+        >
           <p>{stop.description}</p>
         </div>
       ) : null}
-      <div className="stop-actions">
+      <div className="flex items-center justify-end gap-[5px]">
         <button
           className="icon-button"
           onClick={() => onMove(-1)}
@@ -82,7 +93,7 @@ export function StopCard({
           <ArrowDown size={16} aria-hidden="true" />
         </button>
         <button
-          className="text-button remove-button"
+          className="text-button ml-2 text-muted enabled:hover:text-danger"
           onClick={onRemove}
           disabled={busy}
           aria-label={`Remove ${stop.title}`}

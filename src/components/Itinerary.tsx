@@ -27,29 +27,31 @@ export function ItineraryView({
   }
 
   return (
-    <div className="day-list">
+    <div className="mt-[34px] space-y-8">
       {itinerary.days.map((day) => {
         const activityMinutes = day.stops.reduce((total, stop) => total + stop.durationMinutes, 0);
         return (
-          <section
-            className="day-section"
-            key={day.dayNumber}
-            aria-labelledby={`day-heading-${day.dayNumber}`}
-          >
-            <div className="day-header">
-              <div className="day-heading-group">
-                <span className="day-label">Day {day.dayNumber}</span>
-                <h3 id={`day-heading-${day.dayNumber}`} tabIndex={-1}>
+          <section key={day.dayNumber} aria-labelledby={`day-heading-${day.dayNumber}`}>
+            <div className="mb-[13px] flex flex-col items-start justify-between gap-2 phone:flex-row tablet:flex-col wide:flex-row wide:items-center wide:gap-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="rounded-md bg-tint px-2.5 py-[7px] text-[11px] font-bold whitespace-nowrap text-accent">
+                  Day {day.dayNumber}
+                </span>
+                <h3
+                  className="text-[17px] leading-[1.4] font-semibold wrap-anywhere"
+                  id={`day-heading-${day.dayNumber}`}
+                  tabIndex={-1}
+                >
                   {day.title}
                 </h3>
               </div>
-              <span className="day-total">
+              <span className="inline-flex items-center gap-[5px] text-[11px] whitespace-nowrap text-muted">
                 <Clock3 size={14} aria-hidden="true" />
                 {formatDuration(activityMinutes)} of activities
               </span>
             </div>
             {day.stops.length > 0 ? (
-              <ol className="stop-list">
+              <ol className="m-0 list-none p-0">
                 {day.stops.map((stop, index) => (
                   <StopCard
                     key={stop.id}
@@ -65,7 +67,7 @@ export function ItineraryView({
                 ))}
               </ol>
             ) : (
-              <p className="empty-day">
+              <p className="border-y border-line py-[22px] text-[13px] leading-[1.65] text-muted">
                 No stops left for this day. Leave it open, or use a refinement to add something new.
               </p>
             )}

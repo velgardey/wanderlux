@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { zodTextFormat } from 'openai/helpers/zod';
+import { providerTimeoutMs } from '../shared/requestLimits.js';
 import {
   PlannerRequestSchema,
   GeneratedItinerarySchema,
@@ -73,9 +74,14 @@ export async function generateItinerary(
 
   // The SDK handles authentication, transport, schema formatting, and JSON parsing.
   // Automatic retries are off: the UI offers an explicit retry with predictable cost.
-  const client = new OpenAI({ baseURL: baseURL.href, apiKey, timeout: 30_000, maxRetries: 0 });
+  const client = new OpenAI({
+    baseURL: baseURL.href,
+    apiKey,
+    timeout: providerTimeoutMs,
+    maxRetries: 0,
+  });
   // The SDK's fetch timer can end at headers. This deadline also covers body reading/parsing.
-  const deadlineSignal = AbortSignal.timeout(30_000);
+  const deadlineSignal = AbortSignal.timeout(providerTimeoutMs);
   const requestSignal = AbortSignal.any([signal, deadlineSignal]);
   const isRefinement = checkedRequest.data.mode === 'refine';
   const structure = isRefinement ? EditableItineraryStructure : GeneratedItineraryStructure;

@@ -18,7 +18,7 @@ test('generate, edit, save, reload, and refine a trip', async ({ page }) => {
   await page.getByRole('button', { name: 'Expand City Palace' }).click();
   await expect(page.getByText('Explore the courtyards.')).toBeVisible();
   await page.getByRole('button', { name: 'Move A local lunch up' }).click();
-  await expect(page.locator('.stop-title').first()).toHaveText('A local lunch');
+  await expect(page.getByTestId('stop-title').first()).toHaveText('A local lunch');
   await page.getByRole('button', { name: 'Remove A local lunch' }).click();
   await expect(page.getByText('A local lunch', { exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'Remove A garden walk' }).click();
@@ -124,7 +124,7 @@ test('keyboard-only actions work and removing the last stop restores focus', asy
   await page.keyboard.press('Tab');
   await expect(page.getByRole('button', { name: 'Move City Palace down' })).toBeFocused();
   await page.keyboard.press('Enter');
-  await expect(page.locator('.stop-title').first()).toHaveText('A local lunch');
+  await expect(page.getByTestId('stop-title').first()).toHaveText('A local lunch');
   await page.getByRole('button', { name: 'Remove A garden walk' }).focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('heading', { name: 'A quieter afternoon' })).toBeFocused();

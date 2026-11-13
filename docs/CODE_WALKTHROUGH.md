@@ -29,7 +29,7 @@ The structural schemas are sent to Azure. The completed result then receives the
 
 ## 3. Follow the request: `src/lib/api.ts`
 
-This function calls our server, never Azure directly. Native browser fetch is enough for one internal JSON endpoint. It sends the request object, accepts a cancellation signal, and adds a 35-second timeout.
+This function calls our server, never Azure directly. Native browser fetch is enough for one internal JSON endpoint. It sends the request object, accepts a cancellation signal, and adds a 130-second timeout. `shared/requestLimits.ts` defines the server's 120-second deadline and derives the client deadline by adding ten seconds. This leaves time to receive the server's error instead of racing it.
 
 The server may return a JSON error, but a proxy can return an HTML failure. That is why response parsing is guarded and why raw response bodies never become screen text. A successful HTTP status is not enough: the success envelope must pass the runtime schema before returning an itinerary.
 
@@ -78,7 +78,7 @@ Microsoft's examples use the official OpenAI SDK with the Azure v1 endpoint. `zo
 
 The prompt explains the required shape, travel limits, assumptions, and refinement behavior. A refinement input contains the **current** edited itinerary rather than the original response. IDs are preserved when possible so local presentation state can survive.
 
-The SDK timeout is 30 seconds and automatic retries are off. An independent timeout signal covers the whole response as well: the SDK's fetch timer can finish when headers arrive, before a slow error body is read. Combining that deadline with caller cancellation prevents indefinite waiting at that boundary. Errors become messages we wrote ourselves; provider diagnostics, keys, and stacks are not echoed. Abort is best effort: it protects our app state and network work but cannot guarantee the provider stops processing or charging.
+The SDK timeout is 120 seconds and automatic retries are off. The original 30 seconds proved too short: a seven-day generation succeeded in 31.3 seconds after extending the limit. An independent timeout signal covers the whole response as well: the SDK's fetch timer can finish when headers arrive, before a slow error body is read. Combining that deadline with caller cancellation prevents indefinite waiting at that boundary. Errors become messages we wrote ourselves; provider diagnostics, keys, and stacks are not echoed. Abort is best effort: it protects our app state and network work but cannot guarantee the provider stops processing or charging.
 
 ## 8. Components render data, not raw AI text
 
@@ -87,7 +87,7 @@ The SDK timeout is 30 seconds and automatic retries are off. An independent time
 - `ResultBlocks.tsx` renders each known union variant. Checkboxes are controlled by local checked IDs. Chart bars derive from current durations, so removing a stop updates the chart.
 - `EmptyItinerary.tsx` is the initial/loading-empty state. It contains no fake itinerary or substitute model response.
 
-The Lucide icon library supplies a consistent icon set rather than hand-maintained SVG paths for every button. Icons are decorative when the button already has text or an accessible name. CSS tokens in `styles.css` make theme changes understandable: components use `--text`, `--surface`, `--line`, and `--accent` instead of duplicating colors.
+The Lucide icon library supplies a consistent icon set rather than hand-maintained SVG paths for every button. Icons are decorative when the button already has text or an accessible name. Tailwind's theme in `styles.css` gives the utilities meaningful colors such as `text-muted`, `bg-surface`, and `border-line` instead of duplicating color values.
 
 ## 9. Browser storage: `src/lib/storage.ts`
 
@@ -100,6 +100,28 @@ Invalid data is not silently deleted. The screen reports the error and offers an
 `tests/fixtures/itineraries.ts` creates small deterministic example data. The working app does not use those fixtures. Logic tests check validation and immutable edits. Testing Library checks hook behavior with controlled promises, and screen tests click the actual React controls. Supertest checks HTTP parsing/error boundaries. Playwright checks the rendered app in installed Chrome on desktop and mobile.
 
 Mocks are at the network/provider boundary so failures are reproducible and tests do not consume quota. Live generation/refinement are checked separately. Read the race-condition tests first if you need to explain the most valuable reliability behavior in an interview.
+
+## 11. Tailwind styling: JSX and `src/styles.css`
+
+Tailwind turns class names into CSS during the Vite build. There is no styling JavaScript running in the browser. The first-party plugin is registered in `vite.config.ts`, and `@import 'tailwindcss'` loads the framework in the stylesheet.
+
+Read classes as small declarations. For example:
+
+```tsx
+<div className="flex items-center gap-3 rounded-xl bg-surface p-4">
+```
+
+`flex` chooses layout, `items-center` aligns children, `gap-3` adds a 12px gap, `rounded-xl` rounds corners, `bg-surface` chooses the theme's surface color, and `p-4` adds 16px padding. A bracket value such as `text-[13px]` preserves an existing exact size rather than forcing it onto Tailwind's standard scale.
+
+Styles are mobile-first. `phone:`, `tablet:`, and `wide:` apply from 521px, 821px, and 1101px respectively. For example, `flex-col phone:flex-row` stacks children on smaller screens and puts them in a row from 521px. These names are defined in `@theme` and correspond to the layout's existing breakpoints. `max-phone:` applies below 521px, where touch controls need a 44px minimum size.
+
+The `@theme inline` colors reference ordinary CSS variables. Setting `document.documentElement.dataset.theme` to `dark` changes those variables; the same `bg-page` and `text-ink` classes then use dark colors automatically. You do not need to repeat a dark variant on every element.
+
+Only repeated controls keep names such as `button`, `icon-button`, and `form-field`. Their `@apply` rules combine Tailwind utilities in `@layer components`. Element-specific utilities are in the later utilities layer, so `p-3` or `rounded-lg` can override a shared field default. This keeps repeated controls understandable without adding a wrapper component or class-building library.
+
+Variants express states: `enabled:hover:bg-line`, `empty:hidden`, and `peer-checked:line-through`. The checklist input has `peer`; its following label text responds to that input's checked state. Dynamic chart width stays in `style` because it comes from a number at runtime. All Tailwind class strings remain complete literals so the build can find them.
+
+To restyle: edit a utility in the component for a local change; edit a shared control rule for every matching control; edit the root theme variables for colors across the app. Keep visible keyboard focus and reduced-motion rules intact. The stop-title browser locator uses a test ID so changing its visual classes cannot break the test.
 
 ## Small extension exercises
 

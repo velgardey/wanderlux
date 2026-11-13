@@ -10,9 +10,9 @@ This file records the choices made while building. The assignment and the user's
 
 **Choice:** Explicit names, ordinary functions, small components, and explanatory comments about the reasons behind behavior. **Reason:** The user wants to understand, explain, and extend the code. **Considered:** JavaScript saves type annotations, but TypeScript documents the data passed between the API and components. Dense one-liners and speculative abstractions save little and make learning harder. Comments explain decisions, not every obvious assignment.
 
-## 3. Vite, React, Express, and ordinary CSS
+## 3. Vite, React, Express, and Tailwind CSS
 
-**Choice:** One screen, one API route, and a small CSS file. **Reason:** This covers the assignment without a router, state library, database, or design framework. **Considered:** Next.js integrates routes but introduces framework behavior this tool does not need; a component kit adds a second system to learn. Vite handles browser compilation, while Express handles HTTP parsing and errors on the server.
+**Choice:** One screen, one API route, and Tailwind with a small shared stylesheet. **Reason:** This covers the assignment without a router, state library, database, or component kit. The user later requested Tailwind, replacing the original ordinary CSS. **Considered:** Next.js integrates routes but introduces framework behavior this tool does not need; a component kit adds a second system to learn. Vite handles browser compilation, while Express handles HTTP parsing and errors on the server.
 
 ## 4. Azure GPT 6 Luna replaces Gemini
 
@@ -68,7 +68,7 @@ References: [Azure structured outputs](https://learn.microsoft.com/azure/foundry
 
 ## 14. Bounded requests and timeouts
 
-**Choice:** Seven days, eight stops per day, bounded strings/blocks, a 512 KiB body cap, a 30-second SDK timeout, and a 35-second client timeout. **Reason:** This keeps a basic project predictable while allowing valid edited itineraries to be sent back. **Considered:** a 64 KB cap from an early draft, which could reject a valid maximum-sized refinement; a heavily escaped/Unicode fixture checks the relationship. Unlimited size and indefinite waiting would make bad output expensive and difficult to recover from.
+**Choice:** Seven days, eight stops per day, bounded strings/blocks, a 512 KiB body cap, a 120-second SDK/server deadline, and a 130-second client deadline. **Reason:** This keeps a basic project predictable while allowing valid edited itineraries to be sent back. **Considered:** a 64 KB cap from an early draft, which could reject a valid maximum-sized refinement; a heavily escaped/Unicode fixture checks the relationship. The original 30/35-second deadlines were too short for live seven-day generation. Unlimited size and indefinite waiting would make bad output expensive and difficult to recover from.
 
 ## 15. Theme, typography, and motion
 
@@ -96,4 +96,14 @@ References: [Azure structured outputs](https://learn.microsoft.com/azure/foundry
 
 ## 21. A deadline beyond the SDK default
 
-**Choice:** Combine a 30-second timeout signal with caller cancellation as well as the SDK's timeout. **Reason:** Review reproduced an SDK edge where a response's headers arrived but its error body stalled after the SDK fetch timer was cleared. **Considered:** relying on the browser's later timeout, which protects the screen but leaves the server boundary weaker than promised. A small extra signal covers transport/body completion and maps expiry to the existing safe 504 error; a regression test reproduces a stalled error body without a live paid call.
+**Choice:** Combine a 120-second timeout signal with caller cancellation as well as the SDK's timeout. **Reason:** Review reproduced an SDK edge where a response's headers arrived but its error body stalled after the SDK fetch timer was cleared. **Considered:** relying on the browser's later timeout, which protects the screen but leaves the server boundary weaker than promised. A small extra signal covers transport/body completion and maps expiry to the existing safe 504 error; a regression test reproduces a stalled error body without a live paid call.
+
+## 22. Fix an evidenced timeout instead of guessing at credentials
+
+**Choice:** A shared 120-second provider deadline and a derived 130-second browser deadline. **Reason:** The reported message came from our deadline. A live seven-day Kyoto request failed at 30.1 seconds; after extending the deadline, it succeeded in 31.3 seconds. A seven-day refinement also completed in 28.9 seconds. A simulated 45-second valid response failed before the fix and passed after it. **Considered:** changing the key or deployment despite successful shorter calls; reducing reasoning effort, which changes provider behavior; streaming or background jobs, which add a protocol and persistence requirements. A bounded extension fixes the observed failure with two constants. Cancellation remains available, and longer waiting does not guarantee provider availability or factual accuracy.
+
+## 23. Tailwind utilities with a small shared control layer
+
+**Choice:** Tailwind CSS 4.3.5 and the matching first-party Vite plugin, with literal layout/typography classes in JSX and repeated controls using `@apply`. **Reason:** This follows the user's request and removes the large hand-written component stylesheet while preserving the existing appearance and interactions. `@theme inline` connects utility colors to the existing light/dark variables. **Considered:** converting every selector to `@apply`, which would keep the old large stylesheet; copying full button classes everywhere, which makes shared changes harder; adding a component kit or class helper, which provides no needed capability. Exact bracket values and existing breakpoints preserve the design. Native focus and reduced-motion rules stay in the base layer. Chart width remains a runtime style, and browser tests use a test ID rather than depending on visual class names.
+
+References: [Tailwind with Vite](https://tailwindcss.com/docs/installation/using-vite), [theme variables](https://tailwindcss.com/docs/theme), and [Azure latency](https://learn.microsoft.com/azure/ai-foundry/openai/how-to/latency).

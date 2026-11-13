@@ -27,7 +27,7 @@ describe('client API boundary', () => {
       { mode: 'generate', prompt: 'Jaipur' },
       new AbortController().signal,
     );
-    expect(timeoutSpy).toHaveBeenCalledWith(35_000);
+    expect(timeoutSpy).toHaveBeenCalledWith(130_000);
     deadline.abort();
     await expect(pending).rejects.toThrow('This is taking too long. Try again.');
   });

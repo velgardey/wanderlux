@@ -29,12 +29,42 @@ beforeEach(() => {
   vi.stubEnv('AZURE_OPENAI_API_KEY', 'test-key-not-a-real-secret');
 });
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
 });
 
 describe('Azure Responses integration', () => {
+  it('accepts a valid generation that needs more than the old 30-second limit', async () => {
+    vi.useFakeTimers();
+    vi.spyOn(AbortSignal, 'timeout').mockImplementation((milliseconds) => {
+      const deadline = new AbortController();
+      setTimeout(() => deadline.abort(), milliseconds);
+      return deadline.signal;
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(
+        (_url, options) =>
+          new Promise((resolve, reject) => {
+            setTimeout(() => resolve(providerResponse(JSON.stringify(createItinerary()))), 45_000);
+            options.signal.addEventListener(
+              'abort',
+              () => reject(new DOMException('Aborted', 'AbortError')),
+              { once: true },
+            );
+          }),
+      ),
+    );
+    const settled = generateItinerary(
+      { mode: 'generate', prompt: 'Jaipur' },
+      new AbortController().signal,
+    ).catch((error) => error);
+    await vi.advanceTimersByTimeAsync(45_000);
+    expect(await settled).toEqual(createItinerary());
+  });
+
   it('keeps a deadline while a provider error body is stalled after headers', async () => {
     const caller = new AbortController();
     const deadline = new AbortController();
@@ -64,7 +94,7 @@ describe('Azure Responses integration', () => {
     );
     await readingBody;
     try {
-      expect(timeoutSpy).toHaveBeenCalledWith(30_000);
+      expect(timeoutSpy).toHaveBeenCalledWith(120_000);
       deadline.abort();
       expect(await settled).toMatchObject({ status: 504, code: 'TIMEOUT' });
     } finally {

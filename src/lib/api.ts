@@ -4,12 +4,13 @@ import {
   type PlannerRequest,
   type Itinerary,
 } from '../../shared/itinerary.js';
+import { clientTimeoutMs } from '../../shared/requestLimits.js';
 
 export async function requestItinerary(
   request: PlannerRequest,
   signal: AbortSignal,
 ): Promise<Itinerary> {
-  const timeoutSignal = AbortSignal.timeout(35_000);
+  const timeoutSignal = AbortSignal.timeout(clientTimeoutMs);
   const combinedSignal = AbortSignal.any([signal, timeoutSignal]);
   let response: Response;
   try {

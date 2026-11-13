@@ -81,7 +81,9 @@ Browser tests use installed Chrome through Playwright Test, with desktop and 390
 
 The tests cover malformed/wrong-shaped/empty output, duplicate IDs, edited empty days, invalid requests, rate limits, corrupted/denied storage, API errors, out-of-order promises, cancellation, obsolete retries, save/reload, refinements, keyboard entry, and mobile overflow. Live smoke tests are separate and consume provider quota.
 
-Automatic provider retries are disabled. The SDK timeout is 30 seconds and the client timeout is 35 seconds. Abort is best effort and cannot guarantee cancellation of provider processing or charges. A request counter also prevents stale results and errors from overwriting newer work.
+Automatic provider retries are disabled. The server/provider deadline is 120 seconds and the client deadline is 130 seconds. Both values come from `shared/requestLimits.ts`; the extra ten seconds let the server return a clear error before the browser gives up. A live seven-day generation took 31.3 seconds, exceeding the original 30-second cutoff. Abort is best effort and cannot guarantee cancellation of provider processing or charges. A request counter also prevents stale results and errors from overwriting newer work.
+
+Styling uses **Tailwind CSS v4** through its official Vite plugin. Layout and typography utilities live in the JSX. `src/styles.css` holds theme variables, shared focus behavior, and repeated controls using Tailwind's `@apply`. See the walkthrough for utility syntax and theme changes.
 
 ## AI-usage note
 
