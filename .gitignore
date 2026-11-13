@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+playwright-report/
+test-results/
+.superpowers/
+# Earlier reference material is preserved locally, outside this implementation.
+/output/mockups/
+/PRODUCT.md

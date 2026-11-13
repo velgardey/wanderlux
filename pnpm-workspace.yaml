@@ -1,0 +1,3 @@
+# tsx uses esbuild; approve only its native-binary setup, not arbitrary package scripts.
+allowBuilds:
+  esbuild: true
