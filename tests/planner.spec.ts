@@ -119,6 +119,33 @@ test('optional map groups colocated stops and follows itinerary edits', async ({
   expect(zoomButton!.height).toBeGreaterThanOrEqual(44);
   await expect(page.getByRole('status').filter({ hasText: '3 stops located.' })).toBeVisible();
   await expect(page.getByText('Could not locate: A garden walk.')).toBeVisible();
+  await expect(page.getByText('Place lookup by', { exact: false })).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'OpenStreetMap', exact: true })).toBeVisible();
+  const routeArrow = page.locator('.trip-map-arrow');
+  await expect(routeArrow).toHaveCount(1);
+  await expect(routeArrow).not.toHaveAttribute('tabindex');
+  const initialArrowAngle = await routeArrow
+    .locator('svg')
+    .evaluate((element) =>
+      Number.parseFloat((element as SVGElement).style.transform.replace('rotate(', '')),
+    );
+  expect(initialArrowAngle).toBeGreaterThan(0);
+  expect(initialArrowAngle).toBeLessThan(90);
+  const map = page.getByRole('region', { name: 'Itinerary map' });
+  await map.scrollIntoViewIfNeeded();
+  const routePath = page.locator('.leaflet-overlay-pane > svg path').last();
+  async function routeLength() {
+    const bounds = await routePath.boundingBox();
+    return Math.hypot(bounds!.width, bounds!.height);
+  }
+  const initialRouteLength = await routeLength();
+  const mapBounds = await map.boundingBox();
+  await page.mouse.move(mapBounds!.x + mapBounds!.width / 2, mapBounds!.y + mapBounds!.height / 2);
+  await page.mouse.wheel(0, -400);
+  await expect.poll(routeLength).toBeGreaterThan(initialRouteLength * 1.5);
+  const zoomedRouteLength = await routeLength();
+  await page.mouse.wheel(0, 400);
+  await expect.poll(routeLength).toBeLessThan(zoomedRouteLength * 0.75);
   expect(locationQueries).toEqual(['Old Jaipur', 'Johari Bazaar', 'Jaipur']);
   const colocatedPin = page.getByTitle('1.1 City Palace; 1.2 A local lunch', { exact: true });
   await expect(colocatedPin).toHaveAccessibleName('1.1 City Palace; 1.2 A local lunch');
@@ -133,6 +160,19 @@ test('optional map groups colocated stops and follows itinerary edits', async ({
   await page.getByRole('button', { name: 'Remove City Palace' }).click();
   await expect(page.getByTitle('1.1 A local lunch', { exact: true })).toBeVisible();
   await expect(page.getByRole('status').filter({ hasText: '2 stops located.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Move Johari Bazaar up' }).click();
+  await expect
+    .poll(async () => {
+      const reversedAngle = await routeArrow
+        .locator('svg')
+        .evaluate((element) =>
+          Number.parseFloat((element as SVGElement).style.transform.replace('rotate(', '')),
+        );
+      return Math.abs(reversedAngle - initialArrowAngle);
+    })
+    .toBeCloseTo(180);
+  await page.getByRole('button', { name: 'Remove Johari Bazaar' }).click();
+  await expect(routeArrow).toHaveCount(0);
   expect(locationQueries).toHaveLength(3);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.getByRole('button', { name: 'Hide map' }).click();

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { divIcon, latLngBounds } from 'leaflet';
+import { CRS, divIcon, latLng, latLngBounds } from 'leaflet';
 import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { Itinerary, Stop } from '../../shared/itinerary.js';
@@ -17,13 +17,50 @@ function FitMap({ stops }: { stops: PlottedStop[] }) {
     map.fitBounds(
       latLngBounds(stops.map(({ location }) => [location.latitude, location.longitude])),
       {
-        padding: [28, 28],
+        paddingTopLeft: [32, 56],
+        paddingBottomRight: [32, 32],
         maxZoom: 15,
         animate: false,
       },
     );
   }, [map, stops]);
   return null;
+}
+
+function RoutePath({ from, to, color }: { from: MapLocation; to: MapLocation; color: string }) {
+  // Use the map's projection so the arrow follows the line, including at high latitudes.
+  const start = CRS.EPSG3857.project(latLng(from.latitude, from.longitude));
+  const end = CRS.EPSG3857.project(latLng(to.latitude, to.longitude));
+  if (start.equals(end)) return null;
+
+  const midpoint = CRS.EPSG3857.unproject(start.add(end).divideBy(2));
+  const angle = (Math.atan2(start.y - end.y, end.x - start.x) * 180) / Math.PI;
+  const arrowIcon = divIcon({
+    className: 'trip-map-arrow',
+    html: `<svg viewBox="0 0 24 24" style="transform:rotate(${angle}deg)" aria-hidden="true"><path d="M6 5L13 12L6 19" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" /></svg>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  });
+
+  return (
+    <>
+      <Polyline
+        positions={[
+          [from.latitude, from.longitude],
+          [to.latitude, to.longitude],
+        ]}
+        pathOptions={{ color, weight: 3, dashArray: '6 6' }}
+        interactive={false}
+      />
+      <Marker
+        position={midpoint}
+        icon={arrowIcon}
+        pane="overlayPane"
+        interactive={false}
+        keyboard={false}
+      />
+    </>
+  );
 }
 
 export default function MapView({ itinerary }: { itinerary: Itinerary }) {
@@ -95,7 +132,7 @@ export default function MapView({ itinerary }: { itinerary: Itinerary }) {
             className="h-[360px] w-full phone:h-[420px]"
             center={[plottedStops[0].location.latitude, plottedStops[0].location.longitude]}
             zoom={13}
-            scrollWheelZoom={false}
+            scrollWheelZoom
             zoomAnimation={false}
             fadeAnimation={false}
           >
@@ -115,9 +152,10 @@ export default function MapView({ itinerary }: { itinerary: Itinerary }) {
               // Only validated numeric labels and our fixed colors enter Leaflet's icon HTML.
               const icon = divIcon({
                 className: 'trip-map-pin',
-                html: `<span style="background:${first.color}">${markerLabel}</span>`,
-                iconSize: [44, 44],
-                iconAnchor: [22, 22],
+                html: `<span style="background:${first.color}"><b>${markerLabel}</b></span>`,
+                iconSize: [44, 52],
+                iconAnchor: [22, 48],
+                popupAnchor: [0, -44],
               });
               return (
                 <Marker
@@ -155,17 +193,11 @@ export default function MapView({ itinerary }: { itinerary: Itinerary }) {
                 const current = locations.get(stop.location);
                 if (!previous || !current) return null;
                 return (
-                  <Polyline
+                  <RoutePath
                     key={`${day.dayNumber}-${stop.id}`}
-                    positions={[
-                      [previous.latitude, previous.longitude],
-                      [current.latitude, current.longitude],
-                    ]}
-                    pathOptions={{
-                      color: dayColors[day.dayNumber - 1],
-                      weight: 3,
-                      dashArray: '6 6',
-                    }}
+                    from={previous}
+                    to={current}
+                    color={dayColors[day.dayNumber - 1]}
                   />
                 );
               }),
@@ -195,13 +227,6 @@ export default function MapView({ itinerary }: { itinerary: Itinerary }) {
           </button>
         </div>
       ) : null}
-      <p className="small-copy mt-2">
-        Place lookup by{' '}
-        <a className="underline" href="https://photon.komoot.io">
-          Photon
-        </a>
-        , using OpenStreetMap data.
-      </p>
     </div>
   );
 }

@@ -108,14 +108,23 @@
 /* Leaflet creates these elements itself, so their styles belong here. */
 .trip-map-pin span {
   display: grid;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
+  margin: 4px;
   place-items: center;
   border: 2px solid white;
-  border-radius: 50%;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
   color: white;
   font: 600 12px var(--font-sans);
   box-shadow: 0 2px 6px #0003;
+}
+.trip-map-pin b {
+  transform: rotate(45deg);
+  font: inherit;
+}
+.trip-map-arrow {
+  pointer-events: none;
 }
 .leaflet-container {
   font-family: var(--font-sans);

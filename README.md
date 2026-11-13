@@ -49,7 +49,7 @@ Open [the built planner](http://127.0.0.1:3001). Express serves the built client
 3. Expand stops, move them up/down within their day, or remove them. These are immediate local edits.
 4. Enter a refinement such as “make day two less busy.” The AI receives the current edited itinerary.
 5. Check packing items and save the trip. Up to five sessions can be reloaded in this browser; saving an existing session updates it.
-6. Open **Show map** below the stops to see numbered pins, day colors and matched-place popups. The map follows edits; colocated stops share a pin.
+6. Open **Show map** below the stops to see numbered teardrop pins, day colors and matched-place popups. Scroll over the map to zoom in/out; arrows show the visit direction. The map follows edits; colocated stops share a pin.
 
 Generated results may include a travel tip, a packing checklist, and a chart of planned activity time. Chart values come from the current stops so removals update the totals. The theme toggle supports light/dark mode and motion respects the operating system's reduced-motion preference.
 

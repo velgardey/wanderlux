@@ -69,6 +69,14 @@ Removed 20 obsolete asset/document files (31,347,214 bytes) and 13 generated bui
 
 Final verification after code changes: **90 unit/component/API tests and 16 Chrome desktop/mobile tests passed**; typecheck and client/server build passed. Playwright closed its task-owned browsers. Generated `dist` and `test-results` were removed afterwards; `pnpm build` recreates production output. No new live paid provider call, interactive visual inspection, public-load test or clean-machine installation was performed. Earlier live Azure/Photon evidence is recorded above. The walkthrough and decisions explain the current code, and the original plan is marked historical.
 
+## Follow-up: map controls and direction markers
+
+The user requested wheel zoom, teardrop location pins, arrows along connecting paths, and removal of the Photon credit line. Native Leaflet wheel zoom now handles mouse/trackpad input. Existing CSS div icons form teardrops with upright labels, tip/popup anchors and extra top fitting padding. `RoutePath` uses Leaflet's Web Mercator projection to place and rotate one decorative arrow along each distinct resolved segment. No package, asset, saved-schema or provider change was needed. OpenStreetMap attribution remains visible.
+
+The expanded browser regression initially failed on the old credit line, then passed with the requested changes. It checks zooming both directions, arrow direction/reversal after reorder, arrow removal after deleting its connecting stop, retained attribution, accessible pins and grouped-popup behavior. A desktop wheel check first dispatched below the viewport; the captured screenshot established the test setup error, fixed by scrolling the map into view before the mouse action.
+
+Verification: **90 unit/component/API tests and 16 desktop/mobile Chrome tests passed**; typecheck and client/server production build passed. Agent Browser inspected deterministic trip/location fixtures over real OpenStreetMap tiles on desktop dark and 320px light; no horizontal overflow. Its task-owned session was closed. Temporary screenshots and generated build/test output were removed afterwards. The provider and real place lookup were not called again for this presentation-only change.
+
 ## Original pre-flight decisions
 
 - Generated versus edited schema: use the same fields with different stop-count minimums.
